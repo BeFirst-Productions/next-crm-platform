@@ -1,0 +1,70 @@
+model ServiceCategory {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  hasAddons   Boolean   @default(false)
+  templatePdfUrl String?
+  templateHtml String?   @db.Text
+  bgImageUrls  String[]  @default([])
+  status      Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  packages    Package[]
+  addons      Addon[]
+
+  @@map("service_categories")
+}
+
+model Package {
+  id                  String           @id @default(uuid())
+  categoryId          String
+  name                String
+  description         String?
+  price               Decimal          @db.Decimal(14, 2)
+  billingType         BillingType      @default(ONE_TIME)
+  duration            String?
+  icon                String?
+  status              Boolean          @default(true)
+  isPopular           Boolean          @default(false)
+  sortOrder           Int              @default(0)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  recommendedForLeads Lead[]           @relation("LeadRecommendedPackage")
+  features            PackageFeature[]
+  category            ServiceCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  proposalItems       ProposalItem[]   @relation("PackageProposalItems")
+
+  @@index([categoryId])
+  @@map("packages")
+}
+
+model PackageFeature {
+  id           String  @id @default(uuid())
+  packageId    String
+  featureName  String
+  featureValue String?
+  included     Boolean @default(true)
+  sortOrder    Int     @default(0)
+  package      Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@map("package_features")
+}
+
+model Addon {
+  id            String           @id @default(uuid())
+  categoryId    String?
+  name          String
+  description   String?
+  price         Decimal          @db.Decimal(14, 2)
+  taxPercentage Decimal          @default(5.00) @db.Decimal(5, 2)
+  pricingType   BillingType      @default(ONE_TIME)
+  status        Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  category      ServiceCategory? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  proposalItems ProposalItem[]   @relation("AddonProposalItems")
+
+  @@index([categoryId])
+  @@map("addons")
+}

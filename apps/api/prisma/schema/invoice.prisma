@@ -1,0 +1,57 @@
+model Invoice {
+  id            String        @id @default(uuid())
+  invoiceNumber String        @unique
+  clientId      String
+  proposalId    String?
+  contractId    String?
+  subtotal      Decimal       @db.Decimal(14, 2)
+  discount      Decimal       @default(0) @db.Decimal(14, 2)
+  tax           Decimal       @default(0) @db.Decimal(14, 2)
+  total         Decimal       @db.Decimal(14, 2)
+  amountPaid    Decimal       @default(0) @db.Decimal(14, 2)
+  issueDate     DateTime      @default(now())
+  dueDate       DateTime
+  paymentTerms  String?
+  status        InvoiceStatus @default(DRAFT)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  commissions   Commission[]
+  items         InvoiceItem[]
+  client        Client        @relation(fields: [clientId], references: [id])
+  contract      Contract?     @relation(fields: [contractId], references: [id])
+  proposal      Proposal?     @relation(fields: [proposalId], references: [id])
+  payments      Payment[]
+
+  @@index([status])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id        String  @id @default(uuid())
+  invoiceId String
+  name      String
+  quantity  Int     @default(1)
+  unitPrice Decimal @db.Decimal(14, 2)
+  total     Decimal @db.Decimal(14, 2)
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("invoice_items")
+}
+
+model Payment {
+  id          String        @id @default(uuid())
+  clientId    String
+  invoiceId   String
+  amount      Decimal       @db.Decimal(14, 2)
+  method      PaymentMethod
+  status      PaymentStatus @default(PENDING)
+  referenceNo String?
+  paidAt      DateTime?
+  notes       String?
+  createdAt   DateTime      @default(now())
+  client      Client        @relation(fields: [clientId], references: [id])
+  invoice     Invoice       @relation(fields: [invoiceId], references: [id])
+
+  @@index([invoiceId])
+  @@map("payments")
+}
