@@ -10,7 +10,7 @@ function setRefreshCookie(res: Response, token: string) {
   res.cookie(REFRESH_COOKIE, token, {
     httpOnly: true,
     secure: isCookieSecure,
-    sameSite: "strict",
+    sameSite: isCookieSecure ? "strict" : "lax",
     path: "/api/v1/auth",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
