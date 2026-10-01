@@ -16,7 +16,17 @@ interface LoginCredentials {
 export function useAuth() {
   const router = useRouter();
   const toast = useToast();
-  const { user, accessToken, isAuthenticated, isLoading, setAuth, clearAuth, setLoading } = useAuthStore();
+  const {
+    user,
+    accessToken,
+    isAuthenticated,
+    isLoading,
+    isLoggingOut,
+    setAuth,
+    clearAuth,
+    setLoading,
+    setIsLoggingOut,
+  } = useAuthStore();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const login = useCallback(
@@ -49,6 +59,7 @@ export function useAuth() {
   );
 
   const logout = useCallback(async () => {
+    setIsLoggingOut(true);
     setLoading(true);
     try {
       await apiClient("/auth/logout", {
@@ -60,9 +71,13 @@ export function useAuth() {
     } finally {
       clearAuth();
       toast.info("Logged Out", "You have been signed out.");
-      router.push("/login");
+      if (typeof window !== "undefined") {
+        window.location.replace("/login");
+      } else {
+        router.push("/login");
+      }
     }
-  }, [clearAuth, setLoading, toast, router]);
+  }, [clearAuth, setLoading, setIsLoggingOut, toast, router]);
 
   const hasPermission = useCallback(
     (permission: PermissionString | string): boolean => {
@@ -88,6 +103,7 @@ export function useAuth() {
     accessToken,
     isAuthenticated,
     isLoading,
+    isLoggingOut,
     isLoggingIn,
     login,
     logout,

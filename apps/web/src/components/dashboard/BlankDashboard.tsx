@@ -27,28 +27,34 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 
-export function BlankDashboard() {
-  const { user } = useAuth();
-  const role = user?.role || "SALES_STAFF";
+import { ExecutiveDashboard } from "./ExecutiveDashboard";
+import { SalesStaffDashboard } from "./SalesStaffDashboard";
 
-  switch (role) {
-    case "SUPER_ADMIN":
-      return <SuperAdminDashboard user={user} />;
-    case "ADMIN":
-      return <AdminDashboard user={user} />;
-    case "SALES_STAFF":
-      return <SalesStaffDashboard user={user} />;
-    case "MARKETING_TEAM":
-      return <MarketingDashboard user={user} />;
-    default:
-      return <SalesStaffDashboard user={user} />;
+export function BlankDashboard() {
+  const { user, isAuthenticated } = useAuth();
+  const lastRoleRef = React.useRef(user?.role);
+  if (user?.role) {
+    lastRoleRef.current = user.role;
   }
+  const effectiveRole = user?.role || lastRoleRef.current;
+
+  // If user is logging out or not authenticated, DashboardLayout handles full-screen transition
+  if (!isAuthenticated && !user) {
+    return null;
+  }
+
+  if (effectiveRole === "SALES_STAFF") {
+    return <SalesStaffDashboard user={user} />;
+  }
+
+  return <ExecutiveDashboard />;
 }
+
 
 // ============================================================================
 // 1. SUPER ADMIN: TOTAL CONTROLLER DASHBOARD
 // ============================================================================
-function SuperAdminDashboard({ user }: { user: ReturnType<typeof useAuth>["user"] }) {
+export function SuperAdminDashboard({ user }: { user: ReturnType<typeof useAuth>["user"] }) {
   const [showRbac, setShowRbac] = React.useState(false);
   const [selectedStaffPerspective, setSelectedStaffPerspective] = React.useState<string>("ALL");
 
@@ -232,7 +238,7 @@ function SuperAdminDashboard({ user }: { user: ReturnType<typeof useAuth>["user"
 // ============================================================================
 // 2. OPERATIONS ADMIN DASHBOARD
 // ============================================================================
-function AdminDashboard({ user }: { user: ReturnType<typeof useAuth>["user"] }) {
+export function AdminDashboard({ user }: { user: ReturnType<typeof useAuth>["user"] }) {
   return (
     <div className="space-y-8 animate-fade-in">
       <div className="rounded-3xl p-6 lg:p-8 border border-blue-500/30 bg-gradient-to-br from-surface-950 via-blue-950/20 to-surface-950 shadow-glass">
@@ -296,7 +302,7 @@ function AdminDashboard({ user }: { user: ReturnType<typeof useAuth>["user"] }) 
 // ============================================================================
 // 3. SALES STAFF: PERSONAL SALES COCKPIT (DATA ISOLATED)
 // ============================================================================
-function SalesStaffDashboard({ user }: { user: ReturnType<typeof useAuth>["user"] }) {
+export function OldSalesStaffDashboard({ user }: { user: ReturnType<typeof useAuth>["user"] }) {
   return (
     <div className="space-y-8 animate-fade-in">
       <div className="rounded-3xl p-6 lg:p-8 border border-emerald-500/30 bg-gradient-to-br from-surface-950 via-emerald-950/20 to-surface-950 shadow-glass">
@@ -368,7 +374,7 @@ function SalesStaffDashboard({ user }: { user: ReturnType<typeof useAuth>["user"
 // ============================================================================
 // 4. MARKETING TEAM: CAMPAIGN & INBOUND HUB
 // ============================================================================
-function MarketingDashboard({ user }: { user: ReturnType<typeof useAuth>["user"] }) {
+export function MarketingDashboard({ user }: { user: ReturnType<typeof useAuth>["user"] }) {
   return (
     <div className="space-y-8 animate-fade-in">
       <div className="rounded-3xl p-6 lg:p-8 border border-amber-500/30 bg-gradient-to-br from-surface-950 via-amber-950/20 to-surface-950 shadow-glass">

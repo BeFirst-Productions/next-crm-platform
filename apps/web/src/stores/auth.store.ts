@@ -7,6 +7,7 @@ interface AuthActions {
   setAccessToken: (accessToken: string) => void;
   clearAuth: () => void;
   setLoading: (isLoading: boolean) => void;
+  setIsLoggingOut: (isLoggingOut: boolean) => void;
   hasRole: (role: Role) => boolean;
 }
 
@@ -55,6 +56,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   accessToken: initial.accessToken,
   isAuthenticated: Boolean(initial.accessToken && initial.user),
   isLoading: false,
+  isLoggingOut: false,
 
   setAuth: (user: UserSession, accessToken: string) => {
     try {
@@ -72,6 +74,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       accessToken,
       isAuthenticated: true,
       isLoading: false,
+      isLoggingOut: false,
     });
   },
 
@@ -101,10 +104,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       accessToken: null,
       isAuthenticated: false,
       isLoading: false,
+      isLoggingOut: true,
     });
   },
 
   setLoading: (isLoading: boolean) => set({ isLoading }),
+  setIsLoggingOut: (isLoggingOut: boolean) => set({ isLoggingOut }),
 
   hasRole: (role: Role) => {
     return get().user?.role === role;
