@@ -14,51 +14,50 @@ import {
   ArrowLeft,
 } from "lucide-react";
 
+import { useRouter } from "next/navigation";
+import { useProposalStore, type CompanyDetailsField } from "@/stores";
+
 export default function ClientCompanyDetailsPage() {
-  // Mode state (light as shown in reference image, toggleable)
-  const [isDarkMode, setIsDarkMode] = React.useState(false);
+  const router = useRouter();
 
-  // Active Role state in left panel
-  const [activeRole, setActiveRole] = React.useState<"SALES_STAFF" | "REPORTS">("SALES_STAFF");
-
-  // Form Fields (initialized with exact reference values)
-  const [formData, setFormData] = React.useState({
-    companyName: "Abc technologies",
-    contactNumber: "+987 14 222222",
-    contactPerson: "Dhasarath kp",
-    location: "Fujairah, Fujairah Emirate, United Arab Emirates",
-    emailAddress: "Info@abctechnologies.com",
-    industry: "Real Estate",
-    requiredServices: "Social Media + Video Production",
-    projectDescription: "we need....................................",
-    expectedDeliveryDate: "2026-09-30",
-    additionalNotes: "Focus on modern 3d animation website.",
-  });
-
-  const [isSaved, setIsSaved] = React.useState(false);
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  // Zustand Store with Zod Schema Validation & LocalStorage Persistence
+  const {
+    companyDetails,
+    setCompanyField,
+    validateCompanyDetails,
+    errors,
+    activeRole,
+    setActiveRole,
+    isDarkMode,
+    toggleDarkMode,
+    isSaved,
+    setIsSaved,
+    isSubmitting,
+    setIsSubmitting,
+    setCurrentStep,
+  } = useProposalStore();
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setCompanyField(name as CompanyDetailsField, value);
   };
 
   const handleSaveAndContinue = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Trigger full Zod schema validation
+    const { isValid } = validateCompanyDetails();
+    if (!isValid) return;
+
     setIsSubmitting(true);
-
-    try {
-      localStorage.setItem("crm_client_proposal_draft", JSON.stringify(formData));
-    } catch {
-      // Ignore
-    }
-
     setTimeout(() => {
       setIsSubmitting(false);
       setIsSaved(true);
-    }, 600);
+      setCurrentStep(2);
+      router.push("/client-portal/packages");
+    }, 350);
   };
 
   return (
@@ -252,7 +251,7 @@ export default function ClientCompanyDetailsPage() {
           {/* Theme Pill Toggle */}
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setIsDarkMode(!isDarkMode)}
+              onClick={toggleDarkMode}
               className="flex items-center gap-1.5 bg-[#091528] border border-[#162544] px-2.5 py-1 rounded-full text-slate-300 hover:text-white transition-all shadow-sm cursor-pointer"
               title="Toggle Light/Dark Display"
             >
@@ -306,11 +305,15 @@ export default function ClientCompanyDetailsPage() {
                   <input
                     type="text"
                     name="companyName"
-                    value={formData.companyName}
+                    value={companyDetails.companyName}
                     onChange={handleInputChange}
-                    required
-                    className="w-full bg-[#0d1829] border border-[#172844] text-white text-xs sm:text-sm rounded-xl px-4 py-3 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all shadow-sm"
+                    className={`w-full bg-[#0d1829] border ${
+                      errors.companyName ? "border-rose-500/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-[#172844] focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                    } text-white text-xs sm:text-sm rounded-xl px-4 py-3 outline-none transition-all shadow-sm`}
                   />
+                  {errors.companyName && (
+                    <p className="text-[11px] text-rose-400 mt-1 animate-fadeIn">{errors.companyName}</p>
+                  )}
                 </div>
 
                 {/* Column 2: Contact Number */}
@@ -321,11 +324,15 @@ export default function ClientCompanyDetailsPage() {
                   <input
                     type="text"
                     name="contactNumber"
-                    value={formData.contactNumber}
+                    value={companyDetails.contactNumber}
                     onChange={handleInputChange}
-                    required
-                    className="w-full bg-[#0d1829] border border-[#172844] text-white text-xs sm:text-sm rounded-xl px-4 py-3 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all shadow-sm"
+                    className={`w-full bg-[#0d1829] border ${
+                      errors.contactNumber ? "border-rose-500/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-[#172844] focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                    } text-white text-xs sm:text-sm rounded-xl px-4 py-3 outline-none transition-all shadow-sm`}
                   />
+                  {errors.contactNumber && (
+                    <p className="text-[11px] text-rose-400 mt-1 animate-fadeIn">{errors.contactNumber}</p>
+                  )}
                 </div>
 
                 {/* Column 1: Contact Person */}
@@ -336,11 +343,15 @@ export default function ClientCompanyDetailsPage() {
                   <input
                     type="text"
                     name="contactPerson"
-                    value={formData.contactPerson}
+                    value={companyDetails.contactPerson}
                     onChange={handleInputChange}
-                    required
-                    className="w-full bg-[#0d1829] border border-[#172844] text-white text-xs sm:text-sm rounded-xl px-4 py-3 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all shadow-sm"
+                    className={`w-full bg-[#0d1829] border ${
+                      errors.contactPerson ? "border-rose-500/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-[#172844] focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                    } text-white text-xs sm:text-sm rounded-xl px-4 py-3 outline-none transition-all shadow-sm`}
                   />
+                  {errors.contactPerson && (
+                    <p className="text-[11px] text-rose-400 mt-1 animate-fadeIn">{errors.contactPerson}</p>
+                  )}
                 </div>
 
                 {/* Column 2: Location */}
@@ -351,11 +362,15 @@ export default function ClientCompanyDetailsPage() {
                   <input
                     type="text"
                     name="location"
-                    value={formData.location}
+                    value={companyDetails.location}
                     onChange={handleInputChange}
-                    required
-                    className="w-full bg-[#0d1829] border border-[#172844] text-white text-xs sm:text-sm rounded-xl px-4 py-3 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all shadow-sm"
+                    className={`w-full bg-[#0d1829] border ${
+                      errors.location ? "border-rose-500/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-[#172844] focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                    } text-white text-xs sm:text-sm rounded-xl px-4 py-3 outline-none transition-all shadow-sm`}
                   />
+                  {errors.location && (
+                    <p className="text-[11px] text-rose-400 mt-1 animate-fadeIn">{errors.location}</p>
+                  )}
                 </div>
 
                 {/* Column 1: Email Address */}
@@ -366,11 +381,15 @@ export default function ClientCompanyDetailsPage() {
                   <input
                     type="email"
                     name="emailAddress"
-                    value={formData.emailAddress}
+                    value={companyDetails.emailAddress}
                     onChange={handleInputChange}
-                    required
-                    className="w-full bg-[#0d1829] border border-[#172844] text-white text-xs sm:text-sm rounded-xl px-4 py-3 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all shadow-sm"
+                    className={`w-full bg-[#0d1829] border ${
+                      errors.emailAddress ? "border-rose-500/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-[#172844] focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                    } text-white text-xs sm:text-sm rounded-xl px-4 py-3 outline-none transition-all shadow-sm`}
                   />
+                  {errors.emailAddress && (
+                    <p className="text-[11px] text-rose-400 mt-1 animate-fadeIn">{errors.emailAddress}</p>
+                  )}
                 </div>
 
                 {/* Column 2: Industry */}
@@ -381,9 +400,11 @@ export default function ClientCompanyDetailsPage() {
                   <div className="relative">
                     <select
                       name="industry"
-                      value={formData.industry}
+                      value={companyDetails.industry}
                       onChange={handleInputChange}
-                      className="w-full bg-[#0d1829] border border-[#172844] text-white text-xs sm:text-sm rounded-xl px-4 py-3 pr-9 appearance-none outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all shadow-sm cursor-pointer"
+                      className={`w-full bg-[#0d1829] border ${
+                        errors.industry ? "border-rose-500/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-[#172844] focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                      } text-white text-xs sm:text-sm rounded-xl px-4 py-3 pr-9 appearance-none outline-none transition-all shadow-sm cursor-pointer`}
                     >
                       <option value="Real Estate">Real Estate</option>
                       <option value="Technology">Technology</option>
@@ -396,6 +417,9 @@ export default function ClientCompanyDetailsPage() {
                     </select>
                     <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5 pointer-events-none" />
                   </div>
+                  {errors.industry && (
+                    <p className="text-[11px] text-rose-400 mt-1 animate-fadeIn">{errors.industry}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -417,9 +441,11 @@ export default function ClientCompanyDetailsPage() {
                   <div className="relative">
                     <select
                       name="requiredServices"
-                      value={formData.requiredServices}
+                      value={companyDetails.requiredServices}
                       onChange={handleInputChange}
-                      className="w-full bg-[#0d1829] border border-[#172844] text-white text-xs sm:text-sm rounded-xl px-4 py-3 pr-9 appearance-none outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all shadow-sm cursor-pointer"
+                      className={`w-full bg-[#0d1829] border ${
+                        errors.requiredServices ? "border-rose-500/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-[#172844] focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                      } text-white text-xs sm:text-sm rounded-xl px-4 py-3 pr-9 appearance-none outline-none transition-all shadow-sm cursor-pointer`}
                     >
                       <option value="Social Media + Video Production">
                         Social Media + Video Production
@@ -439,6 +465,9 @@ export default function ClientCompanyDetailsPage() {
                     </select>
                     <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5 pointer-events-none" />
                   </div>
+                  {errors.requiredServices && (
+                    <p className="text-[11px] text-rose-400 mt-1 animate-fadeIn">{errors.requiredServices}</p>
+                  )}
                 </div>
 
                 {/* Column 2: Project Description */}
@@ -449,10 +478,15 @@ export default function ClientCompanyDetailsPage() {
                   <input
                     type="text"
                     name="projectDescription"
-                    value={formData.projectDescription}
+                    value={companyDetails.projectDescription || ""}
                     onChange={handleInputChange}
-                    className="w-full bg-[#0d1829] border border-[#172844] text-white text-xs sm:text-sm rounded-xl px-4 py-3 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all shadow-sm"
+                    className={`w-full bg-[#0d1829] border ${
+                      errors.projectDescription ? "border-rose-500/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-[#172844] focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                    } text-white text-xs sm:text-sm rounded-xl px-4 py-3 outline-none transition-all shadow-sm`}
                   />
+                  {errors.projectDescription && (
+                    <p className="text-[11px] text-rose-400 mt-1 animate-fadeIn">{errors.projectDescription}</p>
+                  )}
                 </div>
 
                 {/* Column 1: Expected Delivery Date */}
@@ -464,12 +498,17 @@ export default function ClientCompanyDetailsPage() {
                     <input
                       type="date"
                       name="expectedDeliveryDate"
-                      value={formData.expectedDeliveryDate}
+                      value={companyDetails.expectedDeliveryDate}
                       onChange={handleInputChange}
-                      className="w-full bg-[#0d1829] border border-[#172844] text-white text-xs sm:text-sm rounded-xl px-4 py-3 pr-9 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all shadow-sm cursor-pointer"
+                      className={`w-full bg-[#0d1829] border ${
+                        errors.expectedDeliveryDate ? "border-rose-500/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-[#172844] focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                      } text-white text-xs sm:text-sm rounded-xl px-4 py-3 pr-9 outline-none transition-all shadow-sm cursor-pointer`}
                     />
                     <Calendar className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5 pointer-events-none" />
                   </div>
+                  {errors.expectedDeliveryDate && (
+                    <p className="text-[11px] text-rose-400 mt-1 animate-fadeIn">{errors.expectedDeliveryDate}</p>
+                  )}
                 </div>
 
                 {/* Column 2: Additional Notes (Optional) */}
@@ -480,10 +519,15 @@ export default function ClientCompanyDetailsPage() {
                   <input
                     type="text"
                     name="additionalNotes"
-                    value={formData.additionalNotes}
+                    value={companyDetails.additionalNotes || ""}
                     onChange={handleInputChange}
-                    className="w-full bg-[#0d1829] border border-[#172844] text-white text-xs sm:text-sm rounded-xl px-4 py-3 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all shadow-sm"
+                    className={`w-full bg-[#0d1829] border ${
+                      errors.additionalNotes ? "border-rose-500/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500" : "border-[#172844] focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                    } text-white text-xs sm:text-sm rounded-xl px-4 py-3 outline-none transition-all shadow-sm`}
                   />
+                  {errors.additionalNotes && (
+                    <p className="text-[11px] text-rose-400 mt-1 animate-fadeIn">{errors.additionalNotes}</p>
+                  )}
                 </div>
               </div>
             </div>

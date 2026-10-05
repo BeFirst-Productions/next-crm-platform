@@ -1,7 +1,8 @@
 {
-  "/client-portal/company-details/page": "app/client-portal/company-details/page.js",
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/client-portal/review/page": "app/client-portal/review/page.js",
   "/(dashboard)/dashboard/page": "app/(dashboard)/dashboard/page.js",
-  "/(dashboard)/dashboard/commissions/page": "app/(dashboard)/dashboard/commissions/page.js",
-  "/(dashboard)/dashboard/invoices/new/page": "app/(dashboard)/dashboard/invoices/new/page.js",
-  "/(dashboard)/admin/users/page": "app/(dashboard)/admin/users/page.js"
+  "/(dashboard)/admin/packages/manage/page": "app/(dashboard)/admin/packages/manage/page.js",
+  "/(dashboard)/dashboard/leads/page": "app/(dashboard)/dashboard/leads/page.js",
+  "/(dashboard)/admin/packages/page": "app/(dashboard)/admin/packages/page.js"
 }

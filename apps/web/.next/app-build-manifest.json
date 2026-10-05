@@ -21,6 +21,11 @@
       "static/chunks/main-app.js",
       "static/chunks/app/page.js"
     ],
+    "/(auth)/login/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(auth)/login/page.js"
+    ],
     "/(dashboard)/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -41,45 +46,45 @@
       "static/chunks/main-app.js",
       "static/chunks/app/(dashboard)/dashboard/reports/page.js"
     ],
-    "/(dashboard)/dashboard/commissions/page": [
+    "/(dashboard)/admin/packages/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/dashboard/commissions/page.js"
-    ],
-    "/(auth)/login/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(auth)/login/page.js"
-    ],
-    "/(dashboard)/admin/users/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/admin/users/page.js"
+      "static/chunks/app/(dashboard)/admin/packages/page.js"
     ],
     "/(dashboard)/dashboard/leads/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/(dashboard)/dashboard/leads/page.js"
     ],
-    "/(dashboard)/admin/packages/page": [
+    "/(dashboard)/admin/users/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/admin/packages/page.js"
-    ],
-    "/(dashboard)/dashboard/clients/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/dashboard/clients/page.js"
-    ],
-    "/_not-found/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/_not-found/page.js"
+      "static/chunks/app/(dashboard)/admin/users/page.js"
     ],
     "/client-portal/company-details/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/client-portal/company-details/page.js"
+    ],
+    "/client-portal/packages/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/client-portal/packages/page.js"
+    ],
+    "/client-portal/add-ons/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/client-portal/add-ons/page.js"
+    ],
+    "/client-portal/review/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/client-portal/review/page.js"
+    ],
+    "/(dashboard)/admin/packages/manage/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(dashboard)/admin/packages/manage/page.js"
     ]
   }
 }

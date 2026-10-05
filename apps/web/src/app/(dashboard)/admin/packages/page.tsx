@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import Link from "next/link";
 import {
   Plus,
   Search,
@@ -279,6 +280,7 @@ export default function PackageAddonManagerPage() {
     setFormError(null);
     setIsPackageModalOpen(true);
   };
+  void openEditPackageModal;
 
   const handleSavePackage = async () => {
     if (!packageForm.name.trim() || !packageForm.categoryId || !packageForm.price) {
@@ -715,13 +717,19 @@ export default function PackageAddonManagerPage() {
                                 >
                                   <Eye className="w-3.5 h-3.5" />
                                 </button>
-                                <button
-                                  onClick={() => openEditPackageModal(pkg)}
+                                <Link
+                                  href={`/admin/packages/manage?id=${pkg.id}&type=${
+                                    pkg.category?.name?.toLowerCase().includes("market")
+                                      ? "digital-marketing"
+                                      : pkg.category?.name?.toLowerCase().includes("seo")
+                                      ? "seo"
+                                      : "website"
+                                  }`}
                                   className="p-1.5 rounded-lg bg-surface-900 border border-surface-800 text-blue-400 hover:text-blue-300 hover:border-blue-500/40 transition-colors"
-                                  title="Edit Package"
+                                  title="Edit Package Manager"
                                 >
                                   <Edit2 className="w-3.5 h-3.5" />
-                                </button>
+                                </Link>
                                 <button
                                   onClick={() =>
                                     setDeleteConfirmation({
