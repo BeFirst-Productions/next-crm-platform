@@ -3,12 +3,14 @@
 import * as React from "react";
 import {
   Building2, Search, Globe,
-  CheckCircle2, DollarSign
+  CheckCircle2, DollarSign, Trash2
 } from "lucide-react";
 import type { ClientDto } from "@next-digital-crm/shared-types";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { apiClient } from "@/lib/api-client";
+import { useAuthStore } from "@/stores/auth.store";
 
 const MOCK_CLIENTS: ClientDto[] = [
   {
@@ -74,14 +76,36 @@ export default function ClientsDirectoryPage() {
   const [statusFilter, setStatusFilter] = React.useState<string>("ALL");
   const [selectedClient, setSelectedClient] = React.useState<ClientDto | null>(null);
 
+  const [isDeleting, setIsDeleting] = React.useState<boolean>(false);
+  const user = useAuthStore((state) => state.user);
+  const canDelete = user?.role === "SUPER_ADMIN" || user?.role === "ADMIN";
+
   const fetchClients = async () => {
     try {
-      const res = await apiClient<{ items: ClientDto[] }>("/clients");
-      if (res.data?.items && Array.isArray(res.data.items) && res.data.items.length > 0) {
-        setClients(res.data.items);
+      const res = await apiClient<ClientDto[]>("/clients");
+      const items = Array.isArray(res.data) ? res.data : (res.data as any)?.items;
+      if (items && Array.isArray(items)) {
+        setClients(items);
       }
     } catch {
       // Use seeded fallback if offline
+    }
+  };
+
+  const handleDeleteClient = async (clientId: string) => {
+    if (!confirm("Are you sure you want to permanently delete this client? This will remove all linked contacts.")) {
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      await apiClient(`/clients/${clientId}`, { method: "DELETE" });
+      setClients((prev) => prev.filter((c) => c.id !== clientId));
+      setSelectedClient(null);
+    } catch (err: any) {
+      alert(err.message || "Failed to delete client");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -317,6 +341,22 @@ export default function ClientsDirectoryPage() {
                     <div>Instagram Score: <strong>{selectedClient.lead.instagramScore || "N/A"}/10</strong></div>
                     <div>Google Rating: <strong>{selectedClient.lead.googleRating || "N/A"}/5</strong></div>
                   </div>
+                </div>
+              )}
+
+              {/* Action Buttons for Super Admin / Admin */}
+              {canDelete && (
+                <div className="pt-4 border-t border-surface-800 flex justify-end gap-3">
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    disabled={isDeleting}
+                    onClick={() => handleDeleteClient(selectedClient.id)}
+                    className="flex items-center gap-1.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    {isDeleting ? "Deleting..." : "Delete Client (Admin)"}
+                  </Button>
                 </div>
               )}
             </div>
