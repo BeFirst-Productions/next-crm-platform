@@ -157,39 +157,3 @@ export async function updateClient(id: string, data: Prisma.ClientUpdateInput, a
   return updated;
 }
 
-export async function deleteClient(id: string, actorId: string) {
-  const before = await getClientById(id);
-
-  await prisma.$transaction(async (tx) => {
-    // Unlink any proposals pointing to this client
-    await tx.proposal.updateMany({
-      where: { clientId: id },
-      data: { clientId: null },
-    });
-
-    // If linked to a lead, revert lead conversion status safely
-    if (before.leadId) {
-      await tx.lead.update({
-        where: { id: before.leadId },
-        data: {
-          status: "QUALIFIED",
-          conversionStatus: "PENDING",
-        },
-      });
-    }
-
-    // Delete client (contacts cascade delete per client.prisma)
-    await tx.client.delete({ where: { id } });
-  });
-
-  await recordAuditLog({
-    userId: actorId,
-    action: "DELETE",
-    module: "clients",
-    recordId: id,
-    oldValues: before,
-  });
-
-  return { deleted: true };
-}
-

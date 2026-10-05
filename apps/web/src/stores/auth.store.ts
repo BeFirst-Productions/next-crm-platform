@@ -2,6 +2,8 @@ import { create } from "zustand";
 import type { Role } from "@next-digital-crm/shared-types";
 import type { UserSession, AuthState } from "@/types/auth.types";
 
+import { userSessionSchema } from "./schemas/auth.schema";
+
 interface AuthActions {
   setAuth: (user: UserSession, accessToken: string) => void;
   setAccessToken: (accessToken: string) => void;
@@ -39,11 +41,15 @@ function loadInitialState(): { user: UserSession | null; accessToken: string | n
     const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
 
     if (storedUser && storedToken) {
-      const user = JSON.parse(storedUser) as UserSession;
-      return { user, accessToken: storedToken };
+      const parsed = JSON.parse(storedUser);
+      const validated = userSessionSchema.safeParse(parsed);
+
+      if (validated.success) {
+        return { user: validated.data as UserSession, accessToken: storedToken };
+      }
     }
   } catch {
-    // If parsing fails, cleanly fall back to empty state
+    // If parsing or validation fails, cleanly fall back to empty state
   }
 
   return { user: null, accessToken: null };

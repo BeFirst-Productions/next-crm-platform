@@ -1,6 +1,4 @@
 import { v2 as cloudinary } from "cloudinary";
-import fs from "fs";
-import path from "path";
 
 // Configure Cloudinary from environment variables
 cloudinary.config({
@@ -25,124 +23,47 @@ export async function uploadToCloudinary(
   buffer: Buffer,
   options: UploadOptions = {}
 ): Promise<{ url: string; publicId: string; bytes: number }> {
-  // 1. Stage file locally in temporary directory
-  const isPdf =
-    options.resourceType === "raw" ||
-    (options.publicId && options.publicId.endsWith(".pdf")) ||
-    buffer.slice(0, 4).toString() === "%PDF";
-  const ext = isPdf ? ".pdf" : ".webp";
-  const filename = `${options.publicId || Date.now()}${ext}`;
-  const tempDir = path.join(process.cwd(), "uploads", "temp");
-  const tempFilePath = path.join(tempDir, filename);
-
-  try {
-    fs.mkdirSync(tempDir, { recursive: true });
-    fs.writeFileSync(tempFilePath, buffer);
-  } catch (stageErr) {
-    console.warn("[Upload Staging Warning] Could not stage temp file to disk:", stageErr);
-  }
-
   const isCloudinaryConfigured =
     Boolean(process.env.CLOUDINARY_CLOUD_NAME) &&
     Boolean(process.env.CLOUDINARY_API_KEY) &&
     process.env.CLOUDINARY_CLOUD_NAME !== "demo";
 
   if (!isCloudinaryConfigured) {
-    return promoteToPermanentLocal(tempFilePath, buffer, options, filename);
-  }
-
-  try {
-    const cloudinaryResult = await new Promise<{ url: string; publicId: string; bytes: number }>(
-      (resolve, reject) => {
-        const uploadParams: Record<string, any> = {
-          folder: options.folder || "next-crm/proposal-templates",
-          public_id: options.publicId,
-          resource_type: options.resourceType || "auto",
-        };
-
-        // Only add image transformation flags if not explicitly raw/pdf
-        if (!isPdf) {
-          uploadParams.quality = "auto";
-          uploadParams.fetch_format = "auto";
-          uploadParams.flags = "attachment:false";
-        }
-
-        const uploadStream = cloudinary.uploader.upload_stream(uploadParams, (error, result) => {
-          if (error || !result) {
-            return reject(error || new Error("Cloudinary upload failed"));
-          }
-          resolve({
-            url: result.secure_url,
-            publicId: result.public_id,
-            bytes: result.bytes,
-          });
-        });
-
-        uploadStream.end(buffer);
-      }
-    );
-
-    // 2. On successful Cloudinary upload: DELETE the temporary local file immediately
-    // Professionally, files should NOT be kept on the server to prevent disk exhaustion
-    if (fs.existsSync(tempFilePath)) {
-      try {
-        fs.unlinkSync(tempFilePath);
-      } catch (cleanErr) {
-        console.warn("[Cleanup Note] Could not delete temp file:", cleanErr);
-      }
-    }
-
-    return cloudinaryResult;
-  } catch (error: any) {
-    // 3. Fallback: If Cloudinary fails (e.g. 403 missing upload permissions or offline),
-    // promote the temp file to permanent local storage so the application never breaks
-    console.warn(
-      `[Cloudinary Fallback] Upload to Cloudinary failed (${error?.message || error}). Keeping local fallback. Note: Ensure Cloudinary API key has 'Upload/Admin' role.`
-    );
-    return promoteToPermanentLocal(tempFilePath, buffer, options, filename);
-  }
-}
-
-/**
- * Promotes a staged temp file to permanent local storage when Cloudinary is not used/fails.
- */
-function promoteToPermanentLocal(
-  tempFilePath: string,
-  buffer: Buffer,
-  options: UploadOptions,
-  filename: string
-) {
-  try {
-    const rawFolder = options.folder || "templates";
-    const sanitizedFolder = rawFolder.replace(/[\\/]/g, "_");
-    const uploadDir = path.join(process.cwd(), "uploads", sanitizedFolder);
-    const targetPath = path.join(uploadDir, filename);
-
-    fs.mkdirSync(uploadDir, { recursive: true });
-
-    if (fs.existsSync(tempFilePath)) {
-      fs.renameSync(tempFilePath, targetPath);
-    } else {
-      fs.writeFileSync(targetPath, buffer);
-    }
-
-    const port = process.env.PORT || "4000";
-    const localUrl = `http://localhost:${port}/uploads/${sanitizedFolder}/${filename}`;
-    return {
-      url: localUrl,
-      publicId: `${sanitizedFolder}/${filename}`,
-      bytes: buffer.length,
-    };
-  } catch {
+    // Development fallback if Cloudinary credentials are not configured in .env yet
     const base64Data = buffer.toString("base64");
-    const mimeType = buffer.slice(0, 4).toString() === "%PDF" ? "application/pdf" : "image/webp";
     const mockPublicId = `${options.folder || "templates"}/${options.publicId || Date.now()}`;
+    const mockUrl = `data:image/webp;base64,${base64Data.slice(0, 100)}...`; // fallback preview identifier
     return {
-      url: `data:${mimeType};base64,${base64Data}`,
+      url: mockUrl,
       publicId: mockPublicId,
       bytes: buffer.length,
     };
   }
+
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: options.folder || "next-crm/proposal-templates",
+        public_id: options.publicId,
+        resource_type: options.resourceType || "auto",
+        quality: "auto",
+        fetch_format: "auto",
+        flags: "attachment:false",
+      },
+      (error, result) => {
+        if (error || !result) {
+          return reject(error || new Error("Cloudinary upload failed"));
+        }
+        resolve({
+          url: result.secure_url,
+          publicId: result.public_id,
+          bytes: result.bytes,
+        });
+      }
+    );
+
+    uploadStream.end(buffer);
+  });
 }
 
 /**
@@ -151,9 +72,7 @@ function promoteToPermanentLocal(
  */
 export function getOptimizedImageUrl(publicIdOrUrl: string, width = 1600): string {
   if (!publicIdOrUrl) return "";
-  if (publicIdOrUrl.startsWith("data:") || publicIdOrUrl.startsWith("http://localhost") || publicIdOrUrl.startsWith("http://127.0.0.1")) {
-    return publicIdOrUrl;
-  }
+  if (publicIdOrUrl.startsWith("data:")) return publicIdOrUrl;
   
   if (publicIdOrUrl.includes("res.cloudinary.com")) {
     // Inject transformation flags into existing Cloudinary URL

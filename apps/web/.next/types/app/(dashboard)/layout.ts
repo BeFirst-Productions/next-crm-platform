@@ -1,4 +1,4 @@
-// File: C:\Users\HP\Downloads\next-digital-crm\apps\web\src\app\(dashboard)\layout.tsx
+// File: D:\Be First\Next CRM\next-crm-platform\apps\web\src\app\(dashboard)\layout.tsx
 import * as entry from '../../../../src/app/(dashboard)/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

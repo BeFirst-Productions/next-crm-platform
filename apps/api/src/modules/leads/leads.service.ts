@@ -66,7 +66,7 @@ export async function listLeads(params: ListLeadsParams) {
   return { items, meta: buildPaginationMeta(total, page, limit) };
 }
 
-export async function getLeadById(id: string, actorId?: string, actorRole?: RoleName) {
+export async function getLeadById(id: string) {
   const lead = await prisma.lead.findUnique({
     where: { id },
     include: {
@@ -86,12 +86,6 @@ export async function getLeadById(id: string, actorId?: string, actorRole?: Role
     },
   });
   if (!lead) throw new NotFoundError("Lead");
-
-  // Scoping: SALES_STAFF can only view leads assigned to them or created by them
-  if (actorRole === "SALES_STAFF" && lead.assignedStaffId !== actorId && lead.createdById !== actorId) {
-    throw new NotFoundError("Lead");
-  }
-
   return lead;
 }
 
@@ -163,13 +157,8 @@ export async function createLead(data: Prisma.LeadUncheckedCreateInput, actorId:
   return lead;
 }
 
-export async function updateLead(
-  id: string,
-  data: Prisma.LeadUncheckedUpdateInput,
-  actorId: string,
-  actorRole?: RoleName,
-) {
-  const before = await getLeadById(id, actorId, actorRole);
+export async function updateLead(id: string, data: Prisma.LeadUncheckedUpdateInput, actorId: string) {
+  const before = await getLeadById(id);
   const updated = await prisma.lead.update({
     where: { id },
     data,
@@ -221,9 +210,8 @@ export async function convertLeadToClient(
   leadId: string,
   payload: { billingAddress?: string; notes?: string; conversionValue?: number },
   actorId: string,
-  actorRole?: RoleName,
 ) {
-  const lead = await getLeadById(leadId, actorId, actorRole);
+  const lead = await getLeadById(leadId);
 
   if (lead.client) {
     throw new BadRequestError(`Lead is already converted to client: ${lead.client.customClientId || lead.client.companyName}`);
@@ -318,7 +306,6 @@ export async function convertLeadToClient(
         contactName: lead.contactPerson,
         status: "CLIENT",
       },
-      clientId: result.id,
       oldStatus: lead.status,
       newStatus: "CLIENT",
       actor: {
@@ -333,8 +320,8 @@ export async function convertLeadToClient(
   return result;
 }
 
-export async function assignLead(id: string, staffId: string, actorId: string, actorRole?: RoleName) {
-  const updated = await updateLead(id, { assignedStaffId: staffId }, actorId, actorRole);
+export async function assignLead(id: string, staffId: string, actorId: string) {
+  const updated = await updateLead(id, { assignedStaffId: staffId }, actorId);
   await notifyUser({
     userId: staffId,
     type: "NEW_LEAD_ASSIGNED",
@@ -346,13 +333,13 @@ export async function assignLead(id: string, staffId: string, actorId: string, a
   return updated;
 }
 
-export async function addLeadNote(id: string, note: string, actorId: string, actorRole?: RoleName) {
-  await getLeadById(id, actorId, actorRole);
+export async function addLeadNote(id: string, note: string, actorId: string) {
+  await getLeadById(id);
   return prisma.leadNote.create({ data: { leadId: id, authorId: actorId, note } });
 }
 
-export async function deleteLead(id: string, actorId: string, actorRole?: RoleName) {
-  const existing = await getLeadById(id, actorId, actorRole);
+export async function deleteLead(id: string, actorId: string) {
+  const existing = await getLeadById(id);
 
   if (existing.client || existing.conversionStatus === "CONVERTED" || existing.status === "CLIENT") {
     throw new BadRequestError(

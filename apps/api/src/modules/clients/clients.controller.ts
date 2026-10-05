@@ -22,8 +22,3 @@ export async function update(req: Request, res: Response) {
   const client = await service.updateClient(req.params.id, req.body, req.user!.sub);
   return ApiResponse.success(res, client, "Client updated");
 }
-
-export async function remove(req: Request, res: Response) {
-  const result = await service.deleteClient(req.params.id, req.user!.sub);
-  return ApiResponse.success(res, result, "Client deleted successfully");
-}

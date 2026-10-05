@@ -24,21 +24,21 @@ const upload = multer({
 // Mounted at /service-categories, /packages, /addons (see routes/index.ts)
 
 export const categoryRouter = Router();
-categoryRouter.get("/", categories.list);
+categoryRouter.get("/", authenticate, categories.list);
 categoryRouter.post("/", authenticate, authorize(PERMISSIONS.PACKAGES_MANAGE), validate(createCategorySchema), categories.create);
 categoryRouter.patch("/:id", authenticate, authorize(PERMISSIONS.PACKAGES_MANAGE), validate(updateCategorySchema), categories.update);
 categoryRouter.delete("/:id", authenticate, authorize(PERMISSIONS.PACKAGES_MANAGE), validate(idParamSchema), categories.delete);
 categoryRouter.post("/:id/template", authenticate, authorize(PERMISSIONS.PACKAGES_MANAGE), upload.single("templatePdf"), categories.uploadTemplate);
 
 export const packageRouter = Router();
-packageRouter.get("/", packages.list);
-packageRouter.get("/:id", validate(idParamSchema), packages.getById);
+packageRouter.get("/", authenticate, packages.list);
+packageRouter.get("/:id", authenticate, validate(idParamSchema), packages.getById);
 packageRouter.post("/", authenticate, authorize(PERMISSIONS.PACKAGES_MANAGE), validate(createPackageSchema), packages.create);
 packageRouter.patch("/:id", authenticate, authorize(PERMISSIONS.PACKAGES_MANAGE), validate(updatePackageSchema), packages.update);
 packageRouter.delete("/:id", authenticate, authorize(PERMISSIONS.PACKAGES_MANAGE), validate(idParamSchema), packages.delete);
 
 export const addonRouter = Router();
-addonRouter.get("/", addons.list);
+addonRouter.get("/", authenticate, addons.list);
 addonRouter.post("/", authenticate, authorize(PERMISSIONS.ADDONS_MANAGE), validate(createAddonSchema), addons.create);
 addonRouter.patch("/:id", authenticate, authorize(PERMISSIONS.ADDONS_MANAGE), validate(updateAddonSchema), addons.update);
 addonRouter.delete("/:id", authenticate, authorize(PERMISSIONS.ADDONS_MANAGE), validate(idParamSchema), addons.delete);

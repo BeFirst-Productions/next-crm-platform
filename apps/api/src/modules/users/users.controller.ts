@@ -6,8 +6,8 @@ import { RoleName } from "@/common/constants/roles";
 
 // ─── Users ───────────────────────────────────────────────────────────────────
 
-export async function stats(req: Request, res: Response) {
-  const data = await service.getUserStats(req.user?.role as RoleName | undefined);
+export async function stats(_req: Request, res: Response) {
+  const data = await service.getUserStats();
   return ApiResponse.success(res, data, "User stats fetched");
 }
 
@@ -27,7 +27,6 @@ export async function list(req: Request, res: Response) {
     status,
     departmentId,
     search,
-    requestorRole: req.user?.role as RoleName | undefined,
   });
   return ApiResponse.success(res, items, "Users fetched", 200, meta);
 }

@@ -1,5 +1,4 @@
 import express, { Express } from "express";
-import path from "path";
 import "express-async-errors"; // patches Express so thrown errors in async handlers reach errorHandler
 import cors from "cors";
 import helmet from "helmet";
@@ -20,7 +19,7 @@ export function createApp(): Express {
   app.set("trust proxy", 1); // needed for correct req.ip / rate limiting behind a reverse proxy
 
   // ---- Global middleware ----
-  app.use(helmet({ crossOriginResourcePolicy: false }));
+  app.use(helmet());
   app.use(
     cors({
       origin: env.CLIENT_URL,
@@ -33,18 +32,9 @@ export function createApp(): Express {
   app.use(cookieParser());
   app.use(requestLogger);
 
-  // ---- Static uploads fallback (for uploaded templates & assets) ----
-  app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
-
   // ---- Health check (excluded from auth/rate limit/logging noise) ----
   app.get("/health", (_req, res) => {
     res.status(200).json({ status: "ok", uptime: process.uptime(), timestamp: new Date().toISOString() });
-  });
-
-  // ---- Normalize incoming URLs (strip accidental trailing whitespace, newlines, %0A) ----
-  app.use((req, _res, next) => {
-    req.url = req.url.trim().replace(/(%0A|%0D|\r|\n|\s)+$/gi, "");
-    next();
   });
 
   // ---- API ----
