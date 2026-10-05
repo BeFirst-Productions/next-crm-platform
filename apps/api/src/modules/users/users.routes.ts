@@ -41,6 +41,35 @@ router.post(
   controller.create,
 );
 
+// ─── Departments (MUST precede /:id to prevent route shadowing) ───────────────
+router.get(
+  "/departments",
+  authorize(PERMISSIONS.DEPARTMENTS_LIST),
+  controller.listDepartments,
+);
+
+router.post(
+  "/departments",
+  authorize(PERMISSIONS.DEPARTMENTS_CREATE),
+  validate(createDepartmentSchema),
+  controller.createDepartment,
+);
+
+router.patch(
+  "/departments/:id",
+  authorize(PERMISSIONS.DEPARTMENTS_EDIT),
+  validate(updateDepartmentSchema),
+  controller.updateDepartment,
+);
+
+router.delete(
+  "/departments/:id",
+  authorize(PERMISSIONS.DEPARTMENTS_DELETE),
+  validate(idParamSchema),
+  controller.deleteDepartment,
+);
+
+// ─── User Dynamic Routes (/:id) ───────────────────────────────────────────────
 router.get(
   "/:id",
   authorize(PERMISSIONS.USERS_LIST),
@@ -91,34 +120,6 @@ router.post(
   authorize(PERMISSIONS.USERS_MANAGE_AUTHORITY),
   validate(idParamSchema),
   controller.revokeAuthority,
-);
-
-// ─── Departments ──────────────────────────────────────────────────────────────
-router.get(
-  "/departments",
-  authorize(PERMISSIONS.DEPARTMENTS_LIST),
-  controller.listDepartments,
-);
-
-router.post(
-  "/departments",
-  authorize(PERMISSIONS.DEPARTMENTS_CREATE),
-  validate(createDepartmentSchema),
-  controller.createDepartment,
-);
-
-router.patch(
-  "/departments/:id",
-  authorize(PERMISSIONS.DEPARTMENTS_EDIT),
-  validate(updateDepartmentSchema),
-  controller.updateDepartment,
-);
-
-router.delete(
-  "/departments/:id",
-  authorize(PERMISSIONS.DEPARTMENTS_DELETE),
-  validate(idParamSchema),
-  controller.deleteDepartment,
 );
 
 export default router;

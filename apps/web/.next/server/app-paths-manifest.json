@@ -1,7 +1,4 @@
 {
   "/client-portal/company-details/page": "app/client-portal/company-details/page.js",
-  "/(dashboard)/dashboard/page": "app/(dashboard)/dashboard/page.js",
-  "/(dashboard)/dashboard/commissions/page": "app/(dashboard)/dashboard/commissions/page.js",
-  "/(dashboard)/dashboard/invoices/new/page": "app/(dashboard)/dashboard/invoices/new/page.js",
-  "/(dashboard)/admin/users/page": "app/(dashboard)/admin/users/page.js"
+  "/(dashboard)/dashboard/page": "app/(dashboard)/dashboard/page.js"
 }

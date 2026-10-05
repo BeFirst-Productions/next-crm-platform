@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { X, Building2, User, Mail, Phone, MapPin, Globe, Instagram, Star, DollarSign, CheckCircle2, UserCheck } from "lucide-react";
+import Link from "next/link";
+import { X, Building2, User, Mail, Phone, MapPin, Globe, Instagram, Star, DollarSign, CheckCircle2, UserCheck, FileText } from "lucide-react";
 import type { LeadDto } from "@next-digital-crm/shared-types";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -59,6 +60,13 @@ export function LeadDetailModal({ isOpen, onClose, lead, onEdit, onConvert }: Le
                 Convert to Client
               </Button>
             )}
+            <Link
+              href={`/client-portal/company-details?leadId=${lead.id}`}
+              className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-sky-600/20 transition-all cursor-pointer"
+            >
+              <FileText className="w-4 h-4" />
+              Generate Proposal
+            </Link>
             <Button variant="outline" size="sm" onClick={() => onEdit(lead)}>
               Edit Lead
             </Button>

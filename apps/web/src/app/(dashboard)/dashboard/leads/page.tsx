@@ -120,9 +120,10 @@ export default function LeadsManagementPage() {
 
   const fetchLeads = async () => {
     try {
-      const res = await apiClient<{ items: LeadDto[] }>("/leads");
-      if (res.data?.items && Array.isArray(res.data.items) && res.data.items.length > 0) {
-        setLeads(res.data.items);
+      const res = await apiClient<LeadDto[]>("/leads");
+      const items = Array.isArray(res.data) ? res.data : (res.data as any)?.items;
+      if (items && Array.isArray(items)) {
+        setLeads(items);
       }
     } catch {
       // Keep mock fallback if database server is initializing

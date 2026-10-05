@@ -33,3 +33,20 @@ export function authenticate(req: Request, _res: Response, next: NextFunction) {
     throw new UnauthorizedError("Invalid or expired access token");
   }
 }
+
+/**
+ * Parses JWT access token if provided in Authorization header,
+ * but does NOT throw if header is omitted or token is absent.
+ */
+export function authenticateOptional(req: Request, _res: Response, next: NextFunction) {
+  const header = req.headers.authorization;
+  if (header && header.startsWith("Bearer ")) {
+    const token = header.slice("Bearer ".length);
+    try {
+      req.user = verifyAccessToken(token);
+    } catch {
+      // Ignore invalid or expired token on optional path
+    }
+  }
+  return next();
+}

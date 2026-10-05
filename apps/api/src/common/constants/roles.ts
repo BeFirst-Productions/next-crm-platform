@@ -192,7 +192,19 @@ export function hasPermission(
 
   // If specific permissions are stored on the user object, check them directly
   if (typeof userOrRole === "object" && Array.isArray(userOrRole.permissions) && userOrRole.permissions.length > 0) {
-    return userOrRole.permissions.includes(permission);
+    const userPerms = userOrRole.permissions;
+    if (userPerms.includes("*") || userPerms.includes(permission)) {
+      return true;
+    }
+
+    const [module, action] = permission.split(":");
+    return userPerms.some((p) => {
+      if (p === "*") return true;
+      if (p === `${module}:*`) return true;
+      if ((p === `${module}:read` || p === `${module}:view`) && (action === "list" || action === "view")) return true;
+      if (p === `${module}:update` && action === "edit") return true;
+      return false;
+    });
   }
 
   // Fallback to role default template

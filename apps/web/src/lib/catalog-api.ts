@@ -61,7 +61,7 @@ export interface AddonItem {
 // ─── Categories ──────────────────────────────────────────────────────────────
 
 export async function fetchCategories(): Promise<ServiceCategory[]> {
-  const res = await apiClient<ServiceCategory[]>("/service-categories");
+  const res = await apiClient<ServiceCategory[]>("/service-categories", { requiresAuth: false });
   return res.data;
 }
 
@@ -134,7 +134,7 @@ export async function fetchPackages(categoryId?: string, search?: string): Promi
   if (categoryId) query.append("categoryId", categoryId);
   if (search) query.append("search", search);
   const endpoint = `/packages${query.toString() ? `?${query.toString()}` : ""}`;
-  const res = await apiClient<PackageItem[]>(endpoint);
+  const res = await apiClient<PackageItem[]>(endpoint, { requiresAuth: false });
   return res.data;
 }
 
@@ -193,7 +193,7 @@ export async function fetchAddons(categoryId?: string, search?: string): Promise
   if (categoryId) query.append("categoryId", categoryId);
   if (search) query.append("search", search);
   const endpoint = `/addons${query.toString() ? `?${query.toString()}` : ""}`;
-  const res = await apiClient<AddonItem[]>(endpoint);
+  const res = await apiClient<AddonItem[]>(endpoint, { requiresAuth: false });
   return res.data;
 }
 
