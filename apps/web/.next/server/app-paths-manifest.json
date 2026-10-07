@@ -1,4 +1,7 @@
 {
-  "/page": "app/page.js",
-  "/(dashboard)/dashboard/page": "app/(dashboard)/dashboard/page.js"
+  "/client-portal/packages/page": "app/client-portal/packages/page.js",
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/client-portal/company-details/page": "app/client-portal/company-details/page.js",
+  "/(dashboard)/admin/packages/page": "app/(dashboard)/admin/packages/page.js",
+  "/(dashboard)/admin/packages/manage/page": "app/(dashboard)/admin/packages/manage/page.js"
 }

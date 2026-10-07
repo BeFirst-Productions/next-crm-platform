@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Save,
@@ -16,7 +16,7 @@ import {
   LayoutGrid,
   ChevronDown,
 } from "lucide-react";
-import { fetchPackages, updatePackage } from "@/lib/catalog-api";
+import { fetchPackages, updatePackage, createPackage, fetchCategories } from "@/lib/catalog-api";
 
 interface FeatureRow {
   id?: string;
@@ -116,9 +116,11 @@ const PRESET_PACKAGES: Record<
 };
 
 export default function PackageEditManagerPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const typeParam = searchParams.get("type") || "website";
   const idParam = searchParams.get("id");
+  const isCreateMode = !idParam;
 
   const initialPreset = PRESET_PACKAGES[typeParam] || PRESET_PACKAGES.website;
 
@@ -225,9 +227,34 @@ export default function PackageEditManagerPage() {
             sortOrder: idx + 1,
           })),
         });
+      } else {
+        const catList = await fetchCategories();
+        const matched =
+          catList.find((c) => c.name.toLowerCase() === category.toLowerCase()) ||
+          catList[0];
+        if (matched) {
+          await createPackage({
+            categoryId: matched.id,
+            name: packageName,
+            price: parseFloat(price) || 0,
+            description,
+            status: isActive,
+            billingType: "ONE_TIME",
+            features: features.map((f, idx) => ({
+              featureName: f.featureName,
+              included: f.included,
+              sortOrder: idx + 1,
+            })),
+          });
+        }
       }
       setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 2500);
+      setTimeout(() => {
+        setSaveSuccess(false);
+        if (isCreateMode) {
+          router.push("/admin/packages");
+        }
+      }, 1500);
     } catch {
       // Mock fallback success for preview
       setSaveSuccess(true);
@@ -328,7 +355,19 @@ export default function PackageEditManagerPage() {
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/30 transition-all active:scale-[0.99]"
           >
             <Save className="w-3.5 h-3.5" />
-            <span>{saving ? "Saving..." : saveSuccess ? "Saved!" : "Save Changes"}</span>
+            <span>
+              {saving
+                ? isCreateMode
+                  ? "Creating..."
+                  : "Saving..."
+                : saveSuccess
+                ? isCreateMode
+                  ? "Created!"
+                  : "Saved!"
+                : isCreateMode
+                ? "Save & Create"
+                : "Save Changes"}
+            </span>
           </button>
         </div>
       </div>
@@ -345,9 +384,13 @@ export default function PackageEditManagerPage() {
             {/* Header with Active Toggle */}
             <div className="flex items-start justify-between border-b border-[#14223a] pb-3">
               <div>
-                <h2 className="text-sm font-bold text-white">Edit Package</h2>
+                <h2 className="text-sm font-bold text-white">
+                  {isCreateMode ? "Create Package" : "Edit Package"}
+                </h2>
                 <p className="text-[11px] text-slate-400 mt-0.5">
-                  Update package details, pricing and features.
+                  {isCreateMode
+                    ? "Fill in package details, pricing and features."
+                    : "Update package details, pricing and features."}
                 </p>
               </div>
 
@@ -733,7 +776,13 @@ export default function PackageEditManagerPage() {
               disabled={saving}
               className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/30 transition-all active:scale-[0.99]"
             >
-              {saving ? "Updating..." : "Update Package"}
+              {saving
+                ? isCreateMode
+                  ? "Creating..."
+                  : "Updating..."
+                : isCreateMode
+                ? "Create Package"
+                : "Update Package"}
             </button>
           </div>
         </div>

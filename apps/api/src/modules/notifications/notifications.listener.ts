@@ -2,6 +2,7 @@ import { appEvents, UserEventPayload, LeadCreatedPayload, LeadStatusChangedPaylo
 import { AppEvent } from "@/common/events/event-names";
 import { createNotificationAndEmit } from "@/modules/notifications/notifications.service";
 import { logger } from "@/config/logger";
+import { prisma } from "@/lib/prisma";
 
 /**
  * Registers all application domain event listeners.
@@ -66,13 +67,22 @@ export function registerNotificationListeners(): void {
         ? `${payload.lead.companyName} (${payload.lead.contactName})`
         : payload.lead.contactName;
 
+      let clientId = payload.clientId;
+      if (!clientId) {
+        const client = await prisma.client.findFirst({
+          where: { leadId: payload.lead.id },
+          select: { id: true },
+        });
+        clientId = client?.id;
+      }
+
       await createNotificationAndEmit({
         targetRole: "SUPER_ADMIN",
         type: "CONTRACT_SIGNED",
         title: "Lead Converted to Client! 🎉",
         message: `Lead "${leadName}" was converted to Client by ${payload.actor.name}.`,
         referenceType: "client",
-        referenceId: payload.lead.id,
+        referenceId: clientId || payload.lead.id,
       });
     }
   });

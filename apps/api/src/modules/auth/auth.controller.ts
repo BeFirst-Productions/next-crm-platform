@@ -16,8 +16,10 @@ function setRefreshCookie(res: Response, token: string) {
   });
 }
 
+import { RoleName } from "@/common/constants/roles";
+
 export async function register(req: Request, res: Response) {
-  const user = await authService.registerUser(req.body, req.user?.sub);
+  const user = await authService.registerUser(req.body, req.user?.sub, req.user?.role as RoleName | undefined);
   return ApiResponse.created(res, user, "User registered successfully");
 }
 
@@ -49,5 +51,6 @@ export async function logout(req: Request, res: Response) {
 }
 
 export async function me(req: Request, res: Response) {
-  return ApiResponse.success(res, req.user, "Current user session");
+  const user = await authService.getCurrentUser(req.user!.sub);
+  return ApiResponse.success(res, user, "Current user session");
 }

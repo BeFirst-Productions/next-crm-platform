@@ -27,7 +27,7 @@ export const DEFAULT_COMPANY_DETAILS: CompanyDetailsFormData = {
 
 export const DEFAULT_PACKAGE_SELECTION: PackageSelectionData = {
   category: "web",
-  tier: "business",
+  tier: "professional",
   ecommerce: null,
 };
 
@@ -75,10 +75,15 @@ export const useProposalStore = create<ProposalStore>()(
     (set, get) => ({
       companyDetails: DEFAULT_COMPANY_DETAILS,
       packageSelection: DEFAULT_PACKAGE_SELECTION,
-      selectedAddonIds: ["photography", "social-posts", "drone-shoot", "extra-videos"],
+      selectedAddonIds: [
+        "regular-content",
+        "social-video",
+        "photo-shoot",
+        "technical-consultation",
+      ],
       activeRole: "SALES_STAFF",
-      isDarkMode: false,
-      currentStep: 1,
+      isDarkMode: true,
+      currentStep: 3,
       errors: {},
       isSubmitting: false,
       isSaved: false,

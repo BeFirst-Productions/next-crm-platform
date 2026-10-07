@@ -6,47 +6,42 @@ import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
   Trash2,
-  Plus,
-  Check,
   ArrowLeft,
   ArrowRight,
-  Sun,
-  Moon,
 } from "lucide-react";
 import { useProposalStore, ALL_ADDONS } from "@/stores";
-
 
 // Helper to resolve Package details from Zustand packageSelection
 const PACKAGE_PRICES: Record<string, { name: string; price: number }> = {
   // Web tiers
-  basic: { name: "Basic Website", price: 799 },
-  starter: { name: "Starter Website", price: 1499 },
-  business: { name: "Business Website", price: 2499 },
-  professional: { name: "Professional", price: 5500 },
-  premium: { name: "Premium Website", price: 6999 },
-  mini: { name: "Mini E-Commerce", price: 3999 },
-  standard: { name: "Standard E-Commerce", price: 5999 },
+  basic: { name: "BASIC", price: 799 },
+  starter: { name: "STARTER", price: 1499 },
+  business: { name: "BUSINESS", price: 2499 },
+  professional: { name: "PROFESSIONAL", price: 5500 },
+  premium: { name: "PREMIUM", price: 6999 },
+  mini: { name: "MINI E-COMMERCE", price: 3999 },
+  standard: { name: "STANDARD E-COMMERCE", price: 5999 },
 
   // Marketing tiers
-  growth: { name: "Growth Marketing", price: 4499 },
-  scale: { name: "Scale Marketing", price: 9999 },
+  growth: { name: "GROWTH MARKETING", price: 4499 },
+  scale: { name: "SCALE MARKETING", price: 9999 },
 
   // SEO tiers
-  "local-seo": { name: "Local SEO", price: 1800 },
-  "growth-seo": { name: "Growth SEO", price: 3200 },
-  "authority-seo": { name: "Authority SEO", price: 5500 },
+  "local-seo": { name: "LOCAL SEO", price: 1800 },
+  "growth-seo": { name: "GROWTH SEO", price: 3200 },
+  "authority-seo": { name: "AUTHORITY SEO", price: 5500 },
 
   // Branding tiers
-  "brand-starter": { name: "Brand Starter", price: 999 },
-  "business-identity": { name: "Business Identity", price: 1999 },
-  "complete-brand": { name: "Complete Brand", price: 3499 },
-  "content-starter": { name: "Content Starter", price: 799 },
-  "content-growth": { name: "Content Growth", price: 1499 },
-  "content-pro": { name: "Content Pro", price: 2999 },
-  "lead-starter": { name: "Lead Starter", price: 1299 },
-  "lead-growth": { name: "Lead Growth", price: 2499 },
-  "lead-scale": { name: "Lead Scale", price: 4999 },
-  "growth-360": { name: "Growth 360", price: 8500 },
+  "brand-starter": { name: "BRAND STARTER", price: 999 },
+  "business-identity": { name: "BUSINESS IDENTITY", price: 1999 },
+  "complete-brand": { name: "COMPLETE BRAND", price: 3499 },
+  "content-starter": { name: "CONTENT STARTER", price: 799 },
+  "content-growth": { name: "CONTENT GROWTH", price: 1499 },
+  "content-pro": { name: "CONTENT PRO", price: 2999 },
+  "lead-starter": { name: "LEAD STARTER", price: 1299 },
+  "lead-growth": { name: "LEAD GROWTH", price: 2499 },
+  "lead-scale": { name: "LEAD SCALE", price: 4999 },
+  "growth-360": { name: "GROWTH 360", price: 8500 },
 };
 
 export default function ClientPortalAddonsPage() {
@@ -54,7 +49,6 @@ export default function ClientPortalAddonsPage() {
 
   // Zustand Store
   const {
-    companyDetails,
     packageSelection,
     selectedAddonIds,
     addAddon,
@@ -68,12 +62,12 @@ export default function ClientPortalAddonsPage() {
   // Selected package details
   const packageInfo = React.useMemo(() => {
     if (packageSelection.ecommerce) {
-      return PACKAGE_PRICES[packageSelection.ecommerce] || { name: "E-Commerce", price: 3999 };
+      return PACKAGE_PRICES[packageSelection.ecommerce] || { name: "E-COMMERCE", price: 3999 };
     }
     if (packageSelection.tier) {
-      return PACKAGE_PRICES[packageSelection.tier] || { name: "Professional", price: 5500 };
+      return PACKAGE_PRICES[packageSelection.tier] || { name: "PROFESSIONAL", price: 5500 };
     }
-    return { name: "Professional", price: 5500 };
+    return { name: "PROFESSIONAL", price: 5500 };
   }, [packageSelection]);
 
   // Selected Add-ons items list
@@ -81,15 +75,20 @@ export default function ClientPortalAddonsPage() {
     return ALL_ADDONS.filter((addon) => selectedAddonIds.includes(addon.id));
   }, [selectedAddonIds]);
 
-  // Available catalogue items (all add-ons)
-  const availableAddonsList = ALL_ADDONS;
+  // Available catalogue items (all add-ons not currently selected)
+  const availableAddonsList = React.useMemo(() => {
+    return ALL_ADDONS.filter((addon) => !selectedAddonIds.includes(addon.id));
+  }, [selectedAddonIds]);
 
   // Pricing calculations
   const packagePrice = packageInfo.price;
   const addonsTotal = React.useMemo(() => {
     return selectedAddonsList.reduce((sum, item) => sum + item.price, 0);
   }, [selectedAddonsList]);
-  const grandTotal = packagePrice + addonsTotal;
+
+  const subTotal = packagePrice + addonsTotal;
+  const vatAmount = subTotal * 0.05;
+  const grandTotal = subTotal + vatAmount;
 
   // Navigation handlers
   const handleSaveAndContinue = () => {
@@ -99,100 +98,73 @@ export default function ClientPortalAddonsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#060e1a] text-slate-100 flex flex-col font-sans select-none antialiased">
+    <div className="min-h-screen bg-[#050b14] text-slate-100 flex flex-col font-sans select-none antialiased">
       {/* ==================================================================== */}
       {/* TOP HEADER: BRANDING, STEPPER & THEME TOGGLE */}
       {/* ==================================================================== */}
-      <header
-        className={`w-full border-b px-4 sm:px-8 py-3 flex items-center justify-between sticky top-0 z-30 transition-colors shadow-sm ${
-          isDarkMode
-            ? "bg-[#071120] border-[#14233e] text-slate-100"
-            : "bg-white border-slate-200 text-slate-900"
-        }`}
-      >
+      <header className="w-full border-b border-[#11223b] bg-[#071120] px-4 sm:px-8 py-3.5 flex items-center justify-between sticky top-0 z-30 transition-colors shadow-lg">
         {/* Logo */}
         <Link href="/dashboard" className="flex items-center gap-2 group">
           <img
             src="/logo.svg"
             alt="nEXT Branding | Marketing"
-            className="h-9 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
+            className="h-8 sm:h-9 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
           />
         </Link>
 
-        {/* Center Breadcrumb Stepper (Matching Design) */}
-        <div
-          className={`hidden md:flex items-center rounded-full px-4 py-1.5 shadow-inner text-xs ${
-            isDarkMode
-              ? "bg-[#091528] border border-[#172b4c]"
-              : "bg-[#071120] border border-[#172b4c] text-slate-200"
-          }`}
-        >
+        {/* Center Breadcrumb Stepper (Matching Screenshot) */}
+        <div className="hidden md:flex items-center gap-4 text-xs font-semibold text-slate-400">
           {/* Step 1: Company Details */}
           <Link
             href="/client-portal/company-details"
-            className="flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300 transition-colors font-medium px-2 py-0.5"
+            className="flex items-center gap-1.5 text-slate-300 hover:text-white transition-colors"
           >
             <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
             <span>Company Details</span>
           </Link>
 
-          <span className="text-slate-600 px-1 font-bold">›</span>
+          <span className="text-slate-600">›</span>
 
-          {/* Step 2: Package */}
+          {/* Step 2: Packages */}
           <Link
             href="/client-portal/packages"
-            className="flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300 transition-colors font-medium px-2 py-0.5"
+            className="flex items-center gap-1.5 text-slate-300 hover:text-white transition-colors"
           >
             <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Package</span>
+            <span>Packages</span>
           </Link>
 
-          <span className="text-slate-600 px-1 font-bold">›</span>
+          <span className="text-slate-600">›</span>
 
-          {/* Step 3: Add-ons (Active) */}
-          <div className="flex items-center gap-1.5 text-white font-bold bg-[#00a6ff] px-3.5 py-1 rounded-full shadow-md shadow-sky-500/25">
-            <span className="w-4 h-4 rounded-full bg-white text-[#00a6ff] text-[10px] flex items-center justify-center font-black">
-              3
-            </span>
-            <span>Add-ons</span>
+          {/* Step 3: Add-ons (Active Dot) */}
+          <div className="flex items-center gap-1.5 text-white font-bold">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#00a3ff] shadow-[0_0_8px_#00a3ff]" />
+            <span className="text-white">Add-ons</span>
           </div>
 
-          <span className="text-slate-600 px-1 font-bold">›</span>
+          <span className="text-slate-600">›</span>
 
           {/* Step 4: Review */}
           <Link
             href="/client-portal/review"
-            className="flex items-center gap-1.5 text-slate-400 hover:text-slate-200 transition-colors px-2 py-0.5 font-medium"
+            className="flex items-center gap-1.5 text-slate-500 hover:text-slate-300 transition-colors"
           >
-            <span className="w-4 h-4 rounded-full bg-slate-700 text-slate-300 text-[10px] flex items-center justify-center font-bold">
-              4
-            </span>
             <span>Review</span>
           </Link>
         </div>
 
-        {/* Right: Dark / Light Mode Toggle */}
+        {/* Right: Theme Toggle Switch */}
         <div className="flex items-center gap-3">
           <button
             onClick={toggleDarkMode}
-            className={`flex items-center gap-1.5 border px-2.5 py-1 rounded-full transition-all shadow-sm cursor-pointer ${
-              isDarkMode
-                ? "bg-[#091528] border-[#162544] text-slate-300 hover:text-white"
-                : "bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-900"
-            }`}
-            title="Toggle Light/Dark Display"
+            className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-[#00a3ff] transition-colors duration-200 ease-in-out focus:outline-none"
+            title="Toggle theme"
           >
-            {isDarkMode ? (
-              <>
-                <Sun className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-[10px] font-medium text-slate-200">Light</span>
-              </>
-            ) : (
-              <>
-                <Moon className="w-3.5 h-3.5 text-slate-600" />
-                <span className="text-[10px] font-medium text-slate-700">Dark</span>
-              </>
-            )}
+            <span
+              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                isDarkMode ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
           </button>
         </div>
       </header>
@@ -200,283 +172,208 @@ export default function ClientPortalAddonsPage() {
       {/* ==================================================================== */}
       {/* MAIN CONTAINER */}
       {/* ==================================================================== */}
-      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* ================================================================== */}
-        {/* HERO BANNER: "Enhance Your Package" */}
-        {/* ================================================================== */}
-        <div className="relative bg-white rounded-3xl p-6 sm:p-8 shadow-xl overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-6 border border-slate-100">
-          {/* Subtle Decorative Grid Dots (matching reference) */}
-          <div className="absolute top-4 left-4 opacity-40 pointer-events-none">
-            <div className="grid grid-cols-4 gap-1.5">
-              {Array.from({ length: 16 }).map((_, i) => (
-                <div key={i} className="w-1.5 h-1.5 rounded-full bg-sky-400" />
-              ))}
-            </div>
-          </div>
-          <div className="absolute top-4 right-56 opacity-40 pointer-events-none hidden md:block">
-            <div className="grid grid-cols-4 gap-1.5">
-              {Array.from({ length: 16 }).map((_, i) => (
-                <div key={i} className="w-1.5 h-1.5 rounded-full bg-sky-400" />
-              ))}
-            </div>
-          </div>
-
-          {/* Left Text */}
-          <div className="space-y-1 z-10 text-center sm:text-left">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight">
-              Enhance Your <span className="text-[#00a6ff]">Package</span>
+      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {/* Main Card Container */}
+        <div className="bg-[#081220] border border-[#142642] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+          {/* Header Title & Subtitle */}
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              Enhance Your Package
             </h1>
-            <p className="text-sm sm:text-base text-slate-500 font-medium pt-1">
-              Add extra services based on your client's requirements.
+            <p className="text-xs sm:text-sm text-slate-400 mt-1">
+              Add extra features or custom services to tailor the package to your requirements.
             </p>
           </div>
 
-          {/* Right 3D Illustration */}
-          <div className="relative shrink-0 flex items-center justify-center z-10">
-            <div className="relative w-44 sm:w-56 h-32 sm:h-36 flex items-center justify-center">
-              <img
-                src="/addons-hero-laptop.png"
-                alt="Add-ons Package Illustration"
-                className="w-full h-full object-contain filter drop-shadow-xl"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* ================================================================== */}
-        {/* 2-COLUMN LAYOUT: TABLES ON LEFT (65%), STICKY SUMMARY ON RIGHT (35%) */}
-        {/* ================================================================== */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* ================================================================ */}
-          {/* LEFT COLUMN: DARK CONTAINER WITH SELECTED & AVAILABLE ADD-ONS    */}
-          {/* ================================================================ */}
-          <div className="lg:col-span-8 bg-[#071120] border border-[#14233e] rounded-3xl p-5 sm:p-7 shadow-2xl space-y-6">
-            {/* -------------------------------------------------------------- */}
-            {/* TABLE 1: SELECTED ADD-ONS TABLE                                */}
-            {/* -------------------------------------------------------------- */}
-            <div className="rounded-2xl overflow-hidden border border-[#162744] shadow-lg">
-              {/* Table Cyan Header */}
-              <div className="bg-[#0099e6] px-5 py-3 flex items-center justify-between text-white font-black text-xs tracking-wider uppercase">
-                <span className="w-1/2">ADD-ONS</span>
-                <span className="w-1/4 text-center">PRICE</span>
-                <span className="w-1/4 text-right pr-2">ACTION</span>
-              </div>
-
-              {/* Table Rows */}
-              <div className="bg-white divide-y divide-slate-100">
-                {selectedAddonsList.length > 0 ? (
-                  selectedAddonsList.map((item) => (
-                    <div
-                      key={item.id}
-                      className="px-5 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors text-xs sm:text-sm"
-                    >
-                      {/* Name */}
-                      <span className="w-1/2 font-semibold text-slate-800">
-                        {item.name}
-                      </span>
-
-                      {/* Price */}
-                      <span className="w-1/4 text-center font-bold text-slate-700">
-                        AED {item.price.toLocaleString()}
-                        {item.unit ? ` ${item.unit}` : ""}
-                      </span>
-
-                      {/* Action: Green Badge + Red Trash Button */}
-                      <div className="w-1/4 flex items-center justify-end gap-2 pr-1">
-                        <span className="inline-flex items-center gap-1 bg-[#ecfdf5] text-[#059669] border border-[#a7f3d0] font-semibold text-[11px] px-2.5 py-0.5 rounded-full">
-                          <Check className="w-3 h-3 stroke-[3]" />
-                          Added
-                        </span>
-                        <button
-                          onClick={() => removeAddon(item.id)}
-                          className="w-6 h-6 rounded bg-[#ef4444] hover:bg-[#dc2626] text-white flex items-center justify-center transition-all cursor-pointer shadow-sm hover:scale-110 active:scale-95"
-                          title={`Remove ${item.name}`}
-                          aria-label={`Remove ${item.name}`}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="py-8 px-4 text-center text-slate-400 text-sm">
-                    <p className="font-medium">No add-ons selected yet.</p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      Choose extra services from the catalogue below to enhance this package.
-                    </p>
+          {/* 2-COLUMN LAYOUT: TABLES ON LEFT (66%), STICKY SUMMARY ON RIGHT (34%) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* ============================================================== */}
+            {/* LEFT COLUMN: SELECTED & AVAILABLE ADD-ONS TABLES               */}
+            {/* ============================================================== */}
+            <div className="lg:col-span-8 space-y-6">
+              {/* UPPER TABLE: SELECTED ADD-ONS */}
+              {selectedAddonsList.length > 0 && (
+                <div className="bg-[#0a1526] border border-[#162a4a] rounded-2xl overflow-hidden shadow-lg">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-[#162a4a] bg-[#0c192d] text-slate-400 font-bold uppercase tracking-wider text-[11px]">
+                          <th className="py-3 px-4">ADD-ONS</th>
+                          <th className="py-3 px-4 text-center">PRICE</th>
+                          <th className="py-3 px-4 text-right">ACTION</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#13233c]">
+                        {selectedAddonsList.map((addon) => (
+                          <tr
+                            key={addon.id}
+                            className="hover:bg-[#0d1c33]/60 transition-colors"
+                          >
+                            <td className="py-3.5 px-4 font-semibold text-slate-200">
+                              {addon.name}
+                            </td>
+                            <td className="py-3.5 px-4 text-center font-bold text-white font-mono">
+                              AED {addon.price.toLocaleString()}
+                            </td>
+                            <td className="py-3.5 px-4 text-right">
+                              <div className="inline-flex items-center gap-2">
+                                <span className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded">
+                                  1 Month
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => removeAddon(addon.id)}
+                                  className="w-6 h-6 rounded bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/40 text-rose-400 flex items-center justify-center transition-all cursor-pointer active:scale-95"
+                                  title="Remove add-on"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                )}
+                </div>
+              )}
+
+              {/* LOWER TABLE: AVAILABLE ADD-ONS CATALOGUE */}
+              <div className="bg-[#0a1526] border border-[#162a4a] rounded-2xl overflow-hidden shadow-lg">
+                <div className="overflow-x-auto max-h-[580px] overflow-y-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="sticky top-0 z-10">
+                      <tr className="border-b border-[#162a4a] bg-[#0c192d] text-slate-400 font-bold uppercase tracking-wider text-[11px]">
+                        <th className="py-3 px-4">ADD-ONS</th>
+                        <th className="py-3 px-4 text-center">PRICE</th>
+                        <th className="py-3 px-4 text-right">ACTION</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#13233c]">
+                      {availableAddonsList.map((addon) => (
+                        <tr
+                          key={addon.id}
+                          className="hover:bg-[#0d1c33]/60 transition-colors"
+                        >
+                          <td className="py-3 px-4 text-slate-300 font-medium">
+                            {addon.name}
+                          </td>
+                          <td className="py-3 px-4 text-center font-bold text-slate-200 font-mono">
+                            AED {addon.price.toLocaleString()}
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <button
+                              type="button"
+                              onClick={() => addAddon(addon.id)}
+                              className="bg-[#00a3ff] hover:bg-[#0092e0] text-white text-[11px] font-bold px-3 py-1 rounded shadow-sm shadow-sky-500/25 transition-all cursor-pointer active:scale-95"
+                            >
+                              + Add
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Back to Packages Button */}
+              <div className="pt-1">
+                <Link
+                  href="/client-portal/packages"
+                  className="inline-flex items-center gap-2 border border-[#182f54] hover:border-slate-500 bg-[#0a1628] hover:bg-[#0d1c33] text-slate-300 hover:text-white px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Back to Packages</span>
+                </Link>
               </div>
             </div>
 
-            {/* -------------------------------------------------------------- */}
-            {/* TABLE 2: AVAILABLE ADD-ONS CATALOGUE                           */}
-            {/* -------------------------------------------------------------- */}
-            <div className="rounded-2xl overflow-hidden border border-[#162744] shadow-lg">
-              {/* Table Cyan Header */}
-              <div className="bg-[#0099e6] px-5 py-3 flex items-center justify-between text-white font-black text-xs tracking-wider uppercase">
-                <span className="w-1/2">ADD-ONS</span>
-                <span className="w-1/4 text-center">PRICE</span>
-                <span className="w-1/4 text-right pr-2">ACTION</span>
-              </div>
-
-              {/* Table Rows (Catalogue) */}
-              <div className="bg-white divide-y divide-slate-100 max-h-[560px] overflow-y-auto">
-                {availableAddonsList.map((item) => {
-                  const isAdded = selectedAddonIds.includes(item.id);
-                  return (
-                    <div
-                      key={item.id}
-                      className="px-5 py-2.5 flex items-center justify-between hover:bg-sky-50/50 transition-colors text-xs sm:text-sm"
-                    >
-                      {/* Name */}
-                      <span className="w-1/2 font-medium text-slate-800">
-                        {item.name}
-                      </span>
-
-                      {/* Price */}
-                      <span className="w-1/4 text-center font-semibold text-slate-700">
-                        AED {item.price.toLocaleString()}
-                        {item.unit ? ` ${item.unit}` : ""}
-                      </span>
-
-                      {/* Action: Add or Added */}
-                      <div className="w-1/4 flex items-center justify-end pr-1">
-                        {isAdded ? (
-                          <button
-                            onClick={() => removeAddon(item.id)}
-                            className="inline-flex items-center gap-1 bg-[#ecfdf5] hover:bg-rose-50 hover:text-rose-600 hover:border-rose-300 text-[#059669] border border-[#a7f3d0] font-semibold text-[11px] px-3 py-1 rounded-full transition-all cursor-pointer group"
-                            title="Click to remove"
-                          >
-                            <span className="group-hover:hidden flex items-center gap-1">
-                              <Check className="w-3 h-3 stroke-[3]" />
-                              Added
-                            </span>
-                            <span className="hidden group-hover:flex items-center gap-1">
-                              <Trash2 className="w-3 h-3" />
-                              Remove
-                            </span>
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => addAddon(item.id)}
-                            className="inline-flex items-center gap-1 bg-[#00a6ff] hover:bg-[#0092e0] active:scale-95 text-white font-bold text-xs px-3.5 py-1 rounded-full transition-all shadow-sm hover:shadow-sky-500/25 cursor-pointer"
-                          >
-                            <Plus className="w-3 h-3 stroke-[3]" />
-                            Add
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Bottom Navigation inside Left Container */}
-            <div className="pt-2 flex items-center justify-between">
-              <Link
-                href="/client-portal/packages"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0d1b2e] hover:bg-[#132742] text-slate-300 hover:text-white border border-[#1c3256] text-xs font-semibold transition-all cursor-pointer"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Back to package</span>
-              </Link>
-
-              <span className="text-xs text-slate-400">
-                {selectedAddonsList.length} add-on{selectedAddonsList.length === 1 ? "" : "s"} selected
-              </span>
-            </div>
-          </div>
-
-          {/* ================================================================ */}
-          {/* RIGHT COLUMN: STICKY ORDER SUMMARY (MATCHING REFERENCE MOCKUP)   */}
-          {/* ================================================================ */}
-          <div className="lg:col-span-4 sticky top-24 space-y-4">
-            <div className="bg-[#071120] border border-[#14233e] rounded-3xl p-5 sm:p-6 shadow-2xl">
-              {/* Inner blue border box */}
-              <div className="border border-sky-900/60 rounded-2xl p-5 bg-[#091527]/90 space-y-4">
+            {/* ============================================================== */}
+            {/* RIGHT COLUMN: STICKY ORDER SUMMARY                             */}
+            {/* ============================================================== */}
+            <div className="lg:col-span-4">
+              <div className="bg-[#0a1526] border border-[#162a4a] rounded-2xl p-5 sm:p-6 shadow-xl space-y-5 sticky top-24">
                 {/* Title */}
-                <h3 className="text-sm font-bold text-slate-200 tracking-wider uppercase border-b border-[#142646] pb-3">
+                <h3 className="text-xs font-black tracking-wider uppercase text-white">
                   ORDER SUMMARY
                 </h3>
 
-                {/* Company Name */}
-                <div className="space-y-0.5">
-                  <p className="text-[11px] font-medium text-slate-400">Company</p>
-                  <p className="text-sm font-bold text-white">
-                    {companyDetails.companyName || "ABC Technologies"}
-                  </p>
-                </div>
-
-                {/* Selected Package */}
-                <div className="space-y-0.5">
-                  <p className="text-[11px] font-medium text-slate-400">Selected Package</p>
-                  <p className="text-sm font-semibold text-slate-200">
-                    {packageInfo.name}
-                  </p>
-                </div>
-
-                {/* Package Price Row */}
-                <div className="flex items-center justify-between pt-1">
-                  <span className="text-xs font-bold text-slate-200">Package Price</span>
-                  <span className="text-sm font-bold text-white">
-                    AED {packagePrice.toLocaleString()}
+                {/* Package Info */}
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    PACKAGE
                   </span>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-white uppercase">{packageInfo.name}</span>
+                    <span className="font-mono font-bold text-slate-200">
+                      AED {packagePrice.toLocaleString()}
+                    </span>
+                  </div>
                 </div>
 
-                {/* Add-ons List */}
-                <div className="space-y-2 pt-2 border-t border-[#142646]">
-                  <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
-                    Add-ons:
-                  </p>
+                <div className="border-t border-[#162a4a]" />
 
-                  {selectedAddonsList.length > 0 ? (
-                    <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                      {selectedAddonsList.map((addon) => (
-                        <div
-                          key={addon.id}
-                          className="flex items-center justify-between text-xs text-slate-300"
-                        >
-                          <span className="truncate pr-2">{addon.name}</span>
-                          <span className="font-semibold text-slate-200 shrink-0">
-                            AED {addon.price.toLocaleString()}
-                          </span>
-                        </div>
-                      ))}
+                {/* Breakdown List */}
+                <div className="space-y-2.5 text-xs">
+                  <div className="flex items-center justify-between text-slate-400">
+                    <span>Package Base:</span>
+                    <span className="font-mono text-slate-200">
+                      AED {packagePrice.toLocaleString()}
+                    </span>
+                  </div>
+
+                  {selectedAddonsList.map((addon) => (
+                    <div
+                      key={addon.id}
+                      className="flex items-center justify-between text-slate-400"
+                    >
+                      <span className="truncate pr-2">{addon.name}:</span>
+                      <span className="font-mono text-slate-200 shrink-0">
+                        AED {addon.price.toLocaleString()}
+                      </span>
                     </div>
-                  ) : (
-                    <p className="text-xs text-slate-500 italic">None selected</p>
-                  )}
+                  ))}
                 </div>
 
-                {/* Add-ons Total Row */}
-                <div className="flex items-center justify-between pt-2 border-t border-[#142646]">
-                  <span className="text-xs font-bold text-slate-200">Add-ons Total</span>
-                  <span className="text-sm font-bold text-sky-400">
-                    AED {addonsTotal.toLocaleString()}
-                  </span>
+                <div className="border-t border-[#162a4a]" />
+
+                {/* Subtotal & VAT */}
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between text-slate-400">
+                    <span>Sub Total:</span>
+                    <span className="font-mono text-slate-200">
+                      AED {subTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-slate-400">
+                    <span>VAT (5%):</span>
+                    <span className="font-mono text-slate-200">
+                      AED {vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
                 </div>
 
-                {/* Grand Total Row */}
-                <div className="pt-3 border-t border-[#142646] space-y-1">
-                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                    TOTAL
-                  </div>
-                  <div className="text-3xl sm:text-4xl font-black text-[#00a6ff] text-right tracking-tight">
-                    AED {grandTotal.toLocaleString()}
+                <div className="border-t border-[#162a4a]" />
+
+                {/* Total */}
+                <div className="space-y-1">
+                  <span className="text-xs font-semibold text-slate-400">Total:</span>
+                  <div className="text-2xl sm:text-3xl font-black text-[#00a3ff] font-mono tracking-tight">
+                    AED {grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
+
+                {/* Save & Continue Button */}
+                <button
+                  type="button"
+                  onClick={handleSaveAndContinue}
+                  className="w-full py-3 px-6 rounded-xl bg-[#00a3ff] hover:bg-[#0092e0] active:bg-[#0080e0] text-white font-bold text-xs sm:text-sm shadow-lg shadow-sky-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95"
+                >
+                  <span>Save & Continue</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
-
-              {/* Action: Save & Continue Button */}
-              <button
-                onClick={handleSaveAndContinue}
-                className="w-full mt-5 bg-[#00a6ff] hover:bg-[#0092e0] text-white font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-sky-500/25 transition-all cursor-pointer hover:shadow-sky-500/40 hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <span>Save & Continue</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
             </div>
           </div>
         </div>

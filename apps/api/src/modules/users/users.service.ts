@@ -53,12 +53,18 @@ export async function listUsers(params: {
   status?: UserStatus;
   departmentId?: string;
   search?: string;
+  requestorRole?: RoleName;
 }) {
-  const { page, limit, role, status, departmentId, search } = params;
+  const { page, limit, role, status, departmentId, search, requestorRole } = params;
+
+  // Non-SuperAdmin callers cannot see SuperAdmin accounts
+  let roleFilter: Prisma.UserWhereInput["role"] = role;
+  if (requestorRole !== "SUPER_ADMIN") {
+    roleFilter = role && role !== "SUPER_ADMIN" ? role : { not: "SUPER_ADMIN" };
+  }
 
   const where: Prisma.UserWhereInput = {
-    // Super Admin accounts are never exposed in list results
-    role: role ? role : { not: "SUPER_ADMIN" },
+    ...(roleFilter !== undefined ? { role: roleFilter } : {}),
     ...(status ? { status } : {}),
     ...(departmentId ? { departmentId } : {}),
     ...(search
@@ -88,23 +94,27 @@ export async function listUsers(params: {
 
 // ─── Get User Stats (dashboard cards) ────────────────────────────────────────
 
-export async function getUserStats() {
+export async function getUserStats(requestorRole?: RoleName) {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
+  // If requestor is not Super Admin, exclude Super Admin from metrics
+  const roleExclude: Prisma.UserWhereInput =
+    requestorRole === "SUPER_ADMIN" ? {} : { role: { not: "SUPER_ADMIN" } };
+
   const [total, active, inactive, newThisMonth, departmentCount, roleCount] =
     await Promise.all([
-      prisma.user.count({ where: { role: { not: "SUPER_ADMIN" } } }),
-      prisma.user.count({ where: { status: "ACTIVE", role: { not: "SUPER_ADMIN" } } }),
-      prisma.user.count({ where: { status: "INACTIVE", role: { not: "SUPER_ADMIN" } } }),
+      prisma.user.count({ where: roleExclude }),
+      prisma.user.count({ where: { status: "ACTIVE", ...roleExclude } }),
+      prisma.user.count({ where: { status: "INACTIVE", ...roleExclude } }),
       prisma.user.count({
         where: {
           createdAt: { gte: startOfMonth },
-          role: { not: "SUPER_ADMIN" },
+          ...roleExclude,
         },
       }),
       prisma.department.count(),
-      prisma.user.groupBy({ by: ["role"] }).then((r) => r.length),
+      prisma.user.groupBy({ by: ["role"], where: roleExclude }).then((r) => r.length),
     ]);
 
   return { total, active, inactive, newThisMonth, departmentCount, roleCount };

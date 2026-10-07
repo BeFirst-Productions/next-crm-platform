@@ -25,12 +25,8 @@ import {
   FileText,
 } from "lucide-react";
 import {
-  fetchCategories,
   fetchPackages,
   fetchAddons,
-  createCategory,
-  updateCategory,
-  deleteCategory,
   uploadCategoryTemplate,
   createPackage,
   updatePackage,
@@ -44,6 +40,7 @@ import {
   PackageFeature,
 } from "@/lib/catalog-api";
 import { cn } from "@/lib/utils";
+import { useCategoryStore } from "@/stores";
 
 // Category color badges matching modern design aesthetic
 const CATEGORY_COLORS: Record<string, string> = {
@@ -65,7 +62,13 @@ const CATEGORY_ICONS: Record<string, typeof Globe> = {
 };
 
 export default function PackageAddonManagerPage() {
-  const [categories, setCategories] = useState<ServiceCategory[]>([]);
+  const {
+    categories,
+    fetchCategories: storeFetchCategories,
+    createCategory: storeCreateCategory,
+    updateCategory: storeUpdateCategory,
+    deleteCategory: storeDeleteCategory,
+  } = useCategoryStore();
   const [packages, setPackages] = useState<PackageItem[]>([]);
   const [addons, setAddons] = useState<AddonItem[]>([]);
 
@@ -131,12 +134,11 @@ export default function PackageAddonManagerPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [catList, pkgList, addonList] = await Promise.all([
-        fetchCategories(),
+      const [, pkgList, addonList] = await Promise.all([
+        storeFetchCategories(true),
         fetchPackages(),
         fetchAddons(),
       ]);
-      setCategories(catList);
       setPackages(pkgList);
       setAddons(addonList);
     } catch (err: unknown) {
@@ -230,9 +232,9 @@ export default function PackageAddonManagerPage() {
     }
     try {
       if (editingCategory) {
-        await updateCategory(editingCategory.id, categoryForm);
+        await storeUpdateCategory(editingCategory.id, categoryForm);
       } else {
-        await createCategory(categoryForm);
+        await storeCreateCategory(categoryForm);
       }
       setIsCategoryModalOpen(false);
       loadData();
@@ -263,6 +265,7 @@ export default function PackageAddonManagerPage() {
     setFormError(null);
     setIsPackageModalOpen(true);
   };
+  void openAddPackageModal;
 
   const openEditPackageModal = (pkg: PackageItem) => {
     setEditingPackage(pkg);
@@ -365,7 +368,7 @@ export default function PackageAddonManagerPage() {
     if (!deleteConfirmation) return;
     try {
       if (deleteConfirmation.type === "category") {
-        await deleteCategory(deleteConfirmation.id);
+        await storeDeleteCategory(deleteConfirmation.id);
       } else if (deleteConfirmation.type === "package") {
         await deletePackage(deleteConfirmation.id);
       } else if (deleteConfirmation.type === "addon") {
@@ -416,13 +419,27 @@ export default function PackageAddonManagerPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={openAddPackageModal}
+          <Link
+            href={`/admin/packages/manage?type=${
+              selectedCategory === "ALL"
+                ? "website"
+                : categories
+                    .find((c) => c.id === selectedCategory)
+                    ?.name.toLowerCase()
+                    .includes("market")
+                ? "digital-marketing"
+                : categories
+                    .find((c) => c.id === selectedCategory)
+                    ?.name.toLowerCase()
+                    .includes("seo")
+                ? "seo"
+                : "website"
+            }`}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-medium text-xs shadow-glow transition-all"
           >
             <Plus className="w-4 h-4" />
             <span>Add New Package</span>
-          </button>
+          </Link>
           <button
             onClick={openAddAddonModal}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs shadow-glow transition-all"
