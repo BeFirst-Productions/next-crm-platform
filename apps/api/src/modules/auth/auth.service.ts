@@ -33,17 +33,28 @@ async function issueTokenPair(user: { id: string; email: string; role: RoleName;
   return { accessToken, refreshToken };
 }
 
-export async function registerUser(input: RegisterInput, actorId?: string) {
+export async function registerUser(input: RegisterInput, actorId?: string, actorRole?: RoleName) {
   const existing = await prisma.user.findUnique({ where: { email: input.email } });
   if (existing) {
     throw new ConflictError("A user with this email already exists");
   }
 
-  const role = input.role as RoleName;
-  const permissions = input.permissions ?? ROLE_DEFAULT_PERMISSIONS[role] ?? [];
+  // Count existing users: if 0 users exist in DB, allow first user to bootstrap as SUPER_ADMIN
+  const count = await prisma.user.count();
+  const isFirstUser = count === 0;
+
+  // Only an existing SUPER_ADMIN or the first user can choose privileged roles
+  let role: RoleName = "SALES_STAFF";
+  let permissions: string[] | undefined = undefined;
+
+  if (isFirstUser || actorRole === "SUPER_ADMIN") {
+    role = (input.role as RoleName) ?? "SALES_STAFF";
+    permissions = input.permissions;
+  }
+
+  const effectivePermissions = permissions ?? ROLE_DEFAULT_PERMISSIONS[role] ?? [];
 
   // Generate sequential USR-XXXX employee ID
-  const count = await prisma.user.count();
   const employeeId = `USR-${String(count + 1).padStart(4, "0")}`;
 
   const passwordHash = await hashPassword(input.password);
@@ -53,8 +64,8 @@ export async function registerUser(input: RegisterInput, actorId?: string) {
       name: input.name,
       email: input.email,
       passwordHash,
-      role: input.role,
-      permissions,
+      role,
+      permissions: effectivePermissions,
     },
     select: {
       id: true,
@@ -75,6 +86,44 @@ export async function registerUser(input: RegisterInput, actorId?: string) {
     recordId: user.id,
     newValues: user,
   });
+
+  return user;
+}
+
+export async function getCurrentUser(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      employeeId: true,
+      name: true,
+      email: true,
+      role: true,
+      status: true,
+      phone: true,
+      avatarUrl: true,
+      departmentId: true,
+      department: { select: { id: true, name: true } },
+      joiningDate: true,
+      salesTarget: true,
+      commissionPercentage: true,
+      permissions: true,
+      settings: true,
+      canManageUsers: true,
+      manageUsersExpiresAt: true,
+      lastLoginAt: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  if (!user) {
+    throw new UnauthorizedError("User session no longer exists");
+  }
+
+  if (user.status !== "ACTIVE") {
+    throw new UnauthorizedError("Account is no longer active");
+  }
 
   return user;
 }

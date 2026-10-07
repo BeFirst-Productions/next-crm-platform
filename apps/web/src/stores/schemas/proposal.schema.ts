@@ -59,7 +59,7 @@ export type CompanyDetailsField = keyof CompanyDetailsFormData;
 /**
  * Zod Schema for Step 2: Package Selection
  */
-export const packageTierEnum = z.enum([
+export const presetPackageTierEnum = z.enum([
   "basic",
   "starter",
   "business",
@@ -80,11 +80,15 @@ export const packageTierEnum = z.enum([
   "lead-growth",
   "lead-scale",
   "growth-360",
+  "video-starter",
+  "video-growth",
+  "video-pro",
 ]);
+export const packageTierEnum = z.union([presetPackageTierEnum, z.string()]);
 export type PackageTierId = z.infer<typeof packageTierEnum>;
 
-export const serviceCategoryEnum = z.enum(["web", "marketing", "seo", "branding", "video"]);
-export type ServiceCategoryId = z.infer<typeof serviceCategoryEnum>;
+export const serviceCategoryEnum = z.string().min(1);
+export type ServiceCategoryId = string;
 
 export const ecommerceTierEnum = z.enum(["mini", "standard"]);
 export type EcommerceTierId = z.infer<typeof ecommerceTierEnum>;

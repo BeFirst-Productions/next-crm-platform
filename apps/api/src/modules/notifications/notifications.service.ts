@@ -68,11 +68,20 @@ export async function createNotificationAndEmit(input: NotifyInput): Promise<voi
   }
 }
 
-export async function listNotifications(userId: string, unreadOnly = false) {
+export async function listNotifications(
+  userId: string,
+  params?: { unreadOnly?: boolean; page?: number; limit?: number },
+) {
+  const unreadOnly = params?.unreadOnly ?? false;
+  const page = params?.page ?? 1;
+  const limit = Math.min(params?.limit ?? 50, 100);
+  const skip = (page - 1) * limit;
+
   return prisma.notification.findMany({
     where: { userId, ...(unreadOnly ? { isRead: false } : {}) },
     orderBy: { createdAt: "desc" },
-    take: 50,
+    skip,
+    take: limit,
   });
 }
 
@@ -82,4 +91,8 @@ export async function markAsRead(userId: string, id: string) {
 
 export async function markAllAsRead(userId: string) {
   return prisma.notification.updateMany({ where: { userId, isRead: false }, data: { isRead: true } });
+}
+
+export async function deleteNotification(userId: string, id: string) {
+  return prisma.notification.deleteMany({ where: { id, userId } });
 }

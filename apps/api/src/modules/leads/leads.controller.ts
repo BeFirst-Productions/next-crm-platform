@@ -21,8 +21,10 @@ export async function list(req: Request, res: Response) {
   return ApiResponse.success(res, items, "Leads fetched", 200, meta);
 }
 
+import { RoleName } from "@/common/constants/roles";
+
 export async function getById(req: Request, res: Response) {
-  const lead = await service.getLeadById(req.params.id);
+  const lead = await service.getLeadById(req.params.id, req.user!.sub, req.user!.role as RoleName);
   return ApiResponse.success(res, lead, "Lead fetched");
 }
 
@@ -32,26 +34,26 @@ export async function create(req: Request, res: Response) {
 }
 
 export async function update(req: Request, res: Response) {
-  const lead = await service.updateLead(req.params.id, req.body, req.user!.sub);
+  const lead = await service.updateLead(req.params.id, req.body, req.user!.sub, req.user!.role as RoleName);
   return ApiResponse.success(res, lead, "Lead updated");
 }
 
 export async function convert(req: Request, res: Response) {
-  const client = await service.convertLeadToClient(req.params.id, req.body, req.user!.sub);
+  const client = await service.convertLeadToClient(req.params.id, req.body, req.user!.sub, req.user!.role as RoleName);
   return ApiResponse.created(res, client, "Lead successfully converted to Client");
 }
 
 export async function assign(req: Request, res: Response) {
-  const lead = await service.assignLead(req.params.id, req.body.staffId, req.user!.sub);
+  const lead = await service.assignLead(req.params.id, req.body.staffId, req.user!.sub, req.user!.role as RoleName);
   return ApiResponse.success(res, lead, "Lead assigned");
 }
 
 export async function addNote(req: Request, res: Response) {
-  const note = await service.addLeadNote(req.params.id, req.body.note, req.user!.sub);
+  const note = await service.addLeadNote(req.params.id, req.body.note, req.user!.sub, req.user!.role as RoleName);
   return ApiResponse.created(res, note, "Note added");
 }
 
 export async function remove(req: Request, res: Response) {
-  await service.deleteLead(req.params.id, req.user!.sub);
+  await service.deleteLead(req.params.id, req.user!.sub, req.user!.role as RoleName);
   return ApiResponse.noContent(res);
 }

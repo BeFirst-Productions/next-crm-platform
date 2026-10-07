@@ -22,6 +22,9 @@ import {
   Palette,
   Camera,
   Target,
+  Film,
+  Sparkles,
+  Share2,
 } from "lucide-react";
 
 // ============================================================================
@@ -248,37 +251,156 @@ const FEATURE_MATRIX: FeatureRow[] = [
   },
 ];
 
-// Categories in left sidebar
-const CATEGORIES = [
+// Fallback categories in left sidebar when loading or offline
+const DEFAULT_FALLBACK_CATEGORIES = [
   {
-    id: "web",
-    title: "Website Developing",
-    subtitle: "Professional Websites For Your Brand",
-    icon: Monitor,
+    id: "5df2b160-f833-4b65-a3e7-9bef76968a4b",
+    name: "Website",
+    description: "Static, dynamic & custom web application development",
+    hasAddons: true,
+    sortOrder: 1,
+    status: true,
   },
   {
-    id: "marketing",
-    title: "Digital Marketing",
-    subtitle: "Professional Websites For Your Brand",
-    icon: Megaphone,
+    id: "9e0e93e4-8879-4c61-ba85-8c2979e53448",
+    name: "SEO",
+    description: "Search engine optimization and content ranking",
+    hasAddons: true,
+    sortOrder: 2,
+    status: true,
   },
   {
-    id: "seo",
-    title: "SEO & GEO",
-    subtitle: "Professional Websites For Your Brand",
-    icon: Globe,
+    id: "dac854f1-5d82-408d-8339-eda2f0d79dd2",
+    name: "Social Media",
+    description: "Social media management, branding & community growth",
+    hasAddons: true,
+    sortOrder: 3,
+    status: true,
   },
   {
-    id: "branding",
-    title: "Branding & Google Growth",
-    subtitle: "Professional Websites For Your Brand",
-    icon: TrendingUp,
+    id: "cb0374be-cd95-4f96-8546-1b20f2503b6c",
+    name: "E-commerce & Mini Website",
+    description: "Online storefronts, payment gateways & mini catalogs",
+    hasAddons: true,
+    sortOrder: 4,
+    status: true,
   },
   {
-    id: "video",
-    title: "Video Production",
-    subtitle: "Professional Websites For Your Brand",
-    icon: Video,
+    id: "1d7c6e15-7e0f-4e6e-8f2f-1870c0b75ecf",
+    name: "Digital Marketing",
+    description: "PPC, search ads, lead generation campaigns",
+    hasAddons: false,
+    sortOrder: 5,
+    status: true,
+  },
+  {
+    id: "a56f8d2b-114d-42b3-8de0-02ba54a02f64",
+    name: "Video Production",
+    description: "Corporate videos, animations & reels",
+    hasAddons: false,
+    sortOrder: 6,
+    status: true,
+  },
+];
+
+const getCategoryIcon = (name: string) => {
+  const n = name.toLowerCase();
+  if (n.includes("e-commerce") || n.includes("commerce") || n.includes("shop") || n.includes("cart") || n.includes("mini")) return ShoppingCart;
+  if (n.includes("video") || n.includes("film") || n.includes("media") || n.includes("reel")) return Video;
+  if (n.includes("social")) return Share2;
+  if (n.includes("market") || n.includes("digital")) return TrendingUp;
+  if (n.includes("seo") || n.includes("geo")) return Sparkles;
+  if (n.includes("brand")) return Palette;
+  if (n.includes("web") || n.includes("site")) return Globe;
+  return Sparkles;
+};
+
+const getCategorySubtitle = (cat: { description?: string | null; name: string }) => {
+  if (cat.description && cat.description.trim().length > 0) {
+    return cat.description;
+  }
+  const n = cat.name.toLowerCase();
+  if (n.includes("web")) return "Static, dynamic & custom web application development";
+  if (n.includes("seo")) return "Search engine optimization and content ranking";
+  if (n.includes("social")) return "Social media management, branding & community growth";
+  if (n.includes("commerce") || n.includes("shop") || n.includes("mini")) return "Online storefronts, payment gateways & mini catalogs";
+  if (n.includes("market") || n.includes("digital")) return "PPC, search ads, lead generation campaigns";
+  if (n.includes("video")) return "Corporate videos, animations & reels";
+  return "Professional Packages For Your Brand";
+};
+
+const getCategorySlug = (cat: { id: string; name: string }): string => {
+  const n = cat.name.toLowerCase();
+  if (n.includes("commerce") || n.includes("shop") || n.includes("mini")) return "ecommerce";
+  if (n.includes("market") || n.includes("digital")) return "marketing";
+  if (n.includes("seo") || n.includes("geo")) return "seo";
+  if (n.includes("social") || n.includes("brand")) return "social";
+  if (n.includes("video") || n.includes("film") || n.includes("reel")) return "video";
+  if (n.includes("web") || n.includes("site")) return "web";
+  return cat.id;
+};
+
+interface VideoPackageItem {
+  id: string;
+  name: string;
+  price: string;
+  period: string;
+  tagline: string;
+  isPopular?: boolean;
+  features: string[];
+}
+
+const VIDEO_PACKAGES: VideoPackageItem[] = [
+  {
+    id: "video-starter",
+    name: "REELS & SHORTS STARTER",
+    price: "AED 999",
+    period: "/ Month",
+    tagline: "High-impact short form content for TikTok & Instagram Reels",
+    features: [
+      "1 On-location Shoot Day",
+      "6 Edited Reels / TikTok Videos",
+      "Concept & Script Ideation",
+      "Sound Design & Viral Audio",
+      "Dynamic Captions & Subtitles",
+      "1080p / 4K UHD Output",
+      "1 Round of Revisions per Reel",
+    ],
+  },
+  {
+    id: "video-growth",
+    name: "COMMERCIAL & BRAND GROWTH",
+    price: "AED 2,499",
+    period: "/ Month",
+    tagline: "Cinematic commercial videos designed for high brand authority",
+    isPopular: true,
+    features: [
+      "2 On-location Shoot Days",
+      "12 Edited Reels / Short Videos",
+      "1 High-End Brand Promo (60s)",
+      "Professional Lighting & Audio Rig",
+      "Creative Director & Scriptwriter",
+      "Drone Aerial Footage Included",
+      "Color Grading & Sound Mastering",
+      "Thumbnail & Cover Designs",
+    ],
+  },
+  {
+    id: "video-pro",
+    name: "CINEMATIC ENTERPRISE SUITE",
+    price: "AED 4,999",
+    period: "/ Month",
+    tagline: "Full-scale corporate production for enterprise campaigns & ads",
+    features: [
+      "Full Production Crew & Dedicated DP",
+      "20 Edited Reels / Short Videos",
+      "2 Full Brand Films / TV Commercials",
+      "Voiceover Recording & Licensing",
+      "Cinema Camera 6K RAW Capture",
+      "2D Motion Graphics & Animation",
+      "Dedicated Video Editor & Colorist",
+      "Multi-platform Formats (16:9, 9:16, 1:1)",
+    ],
   },
 ];
 
@@ -695,6 +817,7 @@ const GROWTH_360_PACKAGE = {
 
 import {
   useProposalStore,
+  useCategoryStore,
   type PackageTierId,
   type ServiceCategoryId,
   type EcommerceTierId,
@@ -710,9 +833,44 @@ export default function PackageSelectionPage() {
     toggleDarkMode,
   } = useProposalStore();
 
+  const {
+    categories: storeCategories,
+    isLoading: isCategoriesLoading,
+    fetchCategories,
+  } = useCategoryStore();
+
+  React.useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  const displayCategories = React.useMemo(() => {
+    const activeFromStore = storeCategories.filter((c) => c.status !== false);
+    if (activeFromStore.length > 0) {
+      return activeFromStore;
+    }
+    return DEFAULT_FALLBACK_CATEGORIES;
+  }, [storeCategories]);
+
   const selectedCategory = packageSelection.category;
   const selectedTier = packageSelection.tier;
   const selectedEcommerce = packageSelection.ecommerce;
+
+  const activeCategory = React.useMemo(() => {
+    if (!displayCategories.length) return null;
+    const byId = displayCategories.find((c) => c.id === selectedCategory);
+    if (byId) return byId;
+    const byName = displayCategories.find(
+      (c) => c.name.toLowerCase() === selectedCategory?.toLowerCase()
+    );
+    if (byName) return byName;
+    const bySlug = displayCategories.find(
+      (c) => getCategorySlug(c) === selectedCategory?.toLowerCase()
+    );
+    if (bySlug) return bySlug;
+    return displayCategories[0];
+  }, [displayCategories, selectedCategory]);
+
+  const activeSlug = activeCategory ? getCategorySlug(activeCategory) : "web";
 
   const handleSelectPackage = (tierId: string) => {
     setTier(tierId as PackageTierId);
@@ -859,9 +1017,24 @@ export default function PackageSelectionPage() {
               </span>
 
               <div className="space-y-2.5">
-                {CATEGORIES.map((cat) => {
-                  const Icon = cat.icon;
-                  const isActive = selectedCategory === cat.id;
+                {isCategoriesLoading && storeCategories.length === 0 ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="w-full p-3.5 rounded-2xl bg-[#091528]/60 border border-[#162744] animate-pulse flex items-center gap-3"
+                    >
+                      <div className="w-9 h-9 rounded-xl bg-slate-800/80 shrink-0" />
+                      <div className="space-y-1.5 flex-1 min-w-0">
+                        <div className="h-3.5 bg-slate-800/80 rounded w-2/3" />
+                        <div className="h-2.5 bg-slate-800/50 rounded w-1/2" />
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  displayCategories.map((cat) => {
+                  const Icon = getCategoryIcon(cat.name);
+                  const subtitle = getCategorySubtitle(cat);
+                  const isActive = activeCategory?.id === cat.id;
 
                   return (
                     <button
@@ -873,7 +1046,7 @@ export default function PackageSelectionPage() {
                           : "bg-[#091528] hover:bg-[#0e1f3a] text-slate-300 border border-[#162744]"
                       }`}
                     >
-                      <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div
                           className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
                             isActive
@@ -883,16 +1056,30 @@ export default function PackageSelectionPage() {
                         >
                           <Icon className="w-4 h-4" />
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-bold truncate">
-                            {cat.title}
-                          </p>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="text-sm font-bold truncate">
+                              {cat.name}
+                            </p>
+                            {cat.hasAddons && (
+                              <span
+                                className={`text-[9px] font-semibold px-1.5 py-0.5 rounded border leading-none shrink-0 ${
+                                  isActive
+                                    ? "bg-emerald-400/25 text-emerald-200 border-emerald-300/40"
+                                    : "bg-emerald-950/60 text-emerald-400 border-emerald-500/30"
+                                }`}
+                                title="Add-ons available"
+                              >
+                                +Addons
+                              </span>
+                            )}
+                          </div>
                           <p
                             className={`text-xs truncate ${
                               isActive ? "text-sky-100" : "text-slate-400"
                             }`}
                           >
-                            {cat.subtitle}
+                            {subtitle}
                           </p>
                         </div>
                       </div>
@@ -908,7 +1095,7 @@ export default function PackageSelectionPage() {
                       </div>
                     </button>
                   );
-                })}
+                }))}
               </div>
             </div>
 
@@ -980,7 +1167,7 @@ export default function PackageSelectionPage() {
             </div>
           </div>
           {/* CATEGORY VIEW: DIGITAL MARKETING PACKAGES vs WEBSITE DEVELOPING */}
-          {selectedCategory === "marketing" ? (
+          {activeSlug === "marketing" ? (
             <div className="bg-[#091527] border border-[#142745] rounded-3xl p-5 sm:p-7 shadow-2xl space-y-6">
               {/* Header */}
               <div className="flex items-center gap-2.5 pb-4 border-b border-[#14233e]">
@@ -1099,7 +1286,7 @@ export default function PackageSelectionPage() {
                 </Link>
               </div>
             </div>
-          ) : selectedCategory === "seo" ? (
+          ) : activeSlug === "seo" ? (
             <div className="bg-[#091527] border border-[#142745] rounded-3xl p-5 sm:p-7 shadow-2xl space-y-6">
               {/* Header */}
               <div className="flex items-center gap-2.5 pb-4 border-b border-[#14233e]">
@@ -1207,7 +1394,7 @@ export default function PackageSelectionPage() {
                 </Link>
               </div>
             </div>
-          ) : selectedCategory === "branding" ? (
+          ) : activeSlug === "branding" || activeSlug === "social" ? (
             <div className="bg-[#091527] border border-[#142745] rounded-3xl p-5 sm:p-7 shadow-2xl space-y-8">
               {/* -------------------------------------------------------- */}
               {/* SUBSECTION 1: BRANDING & CREATIVE */}
@@ -1550,6 +1737,358 @@ export default function PackageSelectionPage() {
                         }`}
                       >
                         {selectedTier === GROWTH_360_PACKAGE.id ? "Selected ✓" : "Choose Package"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Save & Continue */}
+              <div className="flex justify-end pt-3">
+                <Link
+                  href="/client-portal/add-ons"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#00a6ff] hover:bg-[#0092e0] text-white font-bold text-sm shadow-lg shadow-sky-500/25 transition-all"
+                >
+                  <span>Save & Continue</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
+          ) : activeSlug === "video" ? (
+            <div className="bg-[#091527] border border-[#142745] rounded-3xl p-5 sm:p-7 shadow-2xl space-y-6">
+              {/* Header */}
+              <div className="flex items-center gap-2.5 pb-4 border-b border-[#14233e]">
+                <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                  <Video className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg sm:text-xl font-bold text-white uppercase tracking-wider">
+                    Video Production Packages
+                  </h2>
+                  <p className="text-sm text-slate-400 mt-0.5">
+                    Select the video production and shoot package that best fits your client&apos;s brand.
+                  </p>
+                </div>
+              </div>
+
+              {/* 3 Vertical Cards Side by Side */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch pt-2">
+                {VIDEO_PACKAGES.map((pkg) => {
+                  const isSelected = selectedTier === pkg.id;
+
+                  return (
+                    <div
+                      key={pkg.id}
+                      className={`bg-white rounded-3xl p-6 sm:p-7 relative shadow-md transition-all border flex flex-col justify-between ${
+                        isSelected
+                          ? "border-[#00a6ff] ring-2 ring-[#00a6ff] shadow-xl shadow-sky-500/10"
+                          : "border-slate-200 hover:border-sky-300"
+                      }`}
+                    >
+                      {pkg.isPopular && (
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 px-3 py-1 rounded-md text-[11px] font-extrabold uppercase tracking-wider bg-[#00a6ff] text-white shadow-sm whitespace-nowrap">
+                          <Star className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
+                          <span>Most Popular</span>
+                        </div>
+                      )}
+
+                      <div>
+                        <div className="w-14 h-14 rounded-full bg-[#0a192f] border border-[#173258] text-[#00a6ff] flex items-center justify-center mx-auto mb-3 shadow-inner">
+                          <Film className="w-6 h-6 text-[#00a6ff]" />
+                        </div>
+
+                        <h3 className="text-xl font-extrabold text-slate-900 tracking-tight text-center uppercase">
+                          {pkg.name}
+                        </h3>
+
+                        <p className="text-2xl font-black text-[#0c2242] mt-1 text-center tracking-tight">
+                          {pkg.price}{" "}
+                          <span className="text-xs font-bold text-slate-500 tracking-normal">
+                            {pkg.period}
+                          </span>
+                        </p>
+
+                        {pkg.tagline && (
+                          <p className="text-xs text-slate-500 mt-1.5 text-center leading-tight min-h-[28px]">
+                            {pkg.tagline}
+                          </p>
+                        )}
+
+                        <div className="space-y-2.5 my-6 text-xs sm:text-sm border-t border-slate-100 pt-5">
+                          {pkg.features.map((feat) => (
+                            <div
+                              key={feat}
+                              className="flex items-start gap-2.5 text-slate-800 font-medium leading-snug"
+                            >
+                              <CheckCircle2 className="w-4 h-4 text-white fill-[#00a6ff] shrink-0 mt-0.5" />
+                              <span>{feat}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleSelectPackage(pkg.id)}
+                        className={`w-full py-2.5 px-4 rounded-xl font-bold text-sm transition-all cursor-pointer shadow-sm ${
+                          isSelected
+                            ? "bg-emerald-600 text-white shadow-emerald-600/30 ring-2 ring-emerald-400/50"
+                            : pkg.isPopular
+                            ? "bg-[#00a6ff] hover:bg-[#0092e0] text-white shadow-sky-500/20"
+                            : "border border-[#00a6ff] text-[#00a6ff] hover:bg-sky-50"
+                        }`}
+                      >
+                        {isSelected ? "Selected ✓" : "Choose Package"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Save & Continue */}
+              <div className="flex justify-end pt-3">
+                <Link
+                  href="/client-portal/add-ons"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#00a6ff] hover:bg-[#0092e0] text-white font-bold text-sm shadow-lg shadow-sky-500/25 transition-all"
+                >
+                  <span>Save & Continue</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
+          ) : activeSlug === "ecommerce" ? (
+            <div className="bg-[#091527] border border-[#142745] rounded-3xl p-5 sm:p-7 shadow-2xl space-y-6">
+              {/* Header */}
+              <div className="flex items-center gap-2.5 pb-4 border-b border-[#14233e]">
+                <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                  <ShoppingCart className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg sm:text-xl font-bold text-white uppercase tracking-wider">
+                    E-commerce & Mini Website Packages
+                  </h2>
+                  <p className="text-sm text-slate-400 mt-0.5">
+                    Select the online storefront package that best fits your client&apos;s product catalog.
+                  </p>
+                </div>
+              </div>
+
+              {/* 2 E-commerce Package Cards */}
+              <div className="space-y-5">
+                {/* E-Commerce Package 1: MINI E-COMMERCE WEBSITE FROM AED 3,499 */}
+                <div className={`rounded-3xl p-6 sm:p-7 shadow-2xl transition-all border ${
+                  selectedEcommerce === "mini"
+                    ? "bg-[#0b2447] border-2 border-sky-400 shadow-sky-600/30 ring-1 ring-sky-300/40"
+                    : "bg-[#091527] border-[#142745] hover:border-sky-500/40"
+                }`}>
+                  <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+                    {/* Left: Icon, Title & Price */}
+                    <div className="flex items-center gap-4 xl:w-80 shrink-0">
+                      <div className="w-14 h-14 rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center shrink-0">
+                        <ShoppingCart className="w-7 h-7" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
+                          MINI E-COMMERCE WEBSITE FROM
+                        </h3>
+                        <p className="text-3xl font-black text-[#0284c7] mt-0.5 tracking-tight">
+                          AED 3,499
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1 leading-tight">
+                          Final pricing depends on functionality and product volume.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Center: 2 Columns of Deliverables Checklist */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2.5 text-sm flex-1">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Custom E-Commerce Design</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Product Catalogue</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Product Management</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Shopping Cart</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Checkout System</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Payment Gateway Integration</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Order Management</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Admin Dashboard</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Customer Accounts</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Coupon & Discount System</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>WhatsApp Integration</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Google Analytics</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Conversion Tracking</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Basic SEO</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Mobile Optimization</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right: Choose Package Button */}
+                    <div className="shrink-0 flex items-center justify-end">
+                      <button
+                        onClick={() => handleChooseEcommerce("mini")}
+                        className={`px-6 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer ${
+                          selectedEcommerce === "mini"
+                            ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-2 ring-emerald-400/50"
+                            : "bg-[#0284c7] hover:bg-[#0369a1] text-white shadow-lg shadow-sky-600/30"
+                        }`}
+                      >
+                        {selectedEcommerce === "mini" ? "Selected ✓" : "Choose Package"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* E-Commerce Package 2: E-COMMERCE WEBSITE FROM AED 5,999 */}
+                <div className={`rounded-3xl p-6 sm:p-7 shadow-2xl transition-all border ${
+                  selectedEcommerce === "standard"
+                    ? "bg-[#0b2447] border-2 border-sky-400 shadow-sky-600/30 ring-1 ring-sky-300/40"
+                    : "bg-[#091527] border-[#142745] hover:border-sky-500/40"
+                }`}>
+                  <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+                    {/* Left: Icon, Title & Price */}
+                    <div className="flex items-center gap-4 xl:w-80 shrink-0">
+                      <div className="w-14 h-14 rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center shrink-0">
+                        <ShoppingCart className="w-7 h-7" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
+                          E-COMMERCE WEBSITE FROM
+                        </h3>
+                        <p className="text-3xl font-black text-[#0284c7] mt-0.5 tracking-tight">
+                          AED 5,999
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1 leading-tight">
+                          Final pricing depends on functionality and product volume.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Center: 2 Columns of Deliverables Checklist */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2.5 text-sm flex-1">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Custom E-Commerce Design</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Product Catalogue</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Product Management</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Shopping Cart</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Checkout System</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Payment Gateway Integration</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Order Management</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Admin Dashboard</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Customer Accounts</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Coupon & Discount System</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>WhatsApp Integration</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Google Analytics</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Conversion Tracking</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Basic SEO</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-slate-200">
+                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                          <span>Mobile Optimization</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right: Choose Package Button */}
+                    <div className="shrink-0 flex items-center justify-end">
+                      <button
+                        onClick={() => handleChooseEcommerce("standard")}
+                        className={`px-6 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer ${
+                          selectedEcommerce === "standard"
+                            ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-2 ring-emerald-400/50"
+                            : "bg-[#0284c7] hover:bg-[#0369a1] text-white shadow-lg shadow-sky-600/30"
+                        }`}
+                      >
+                        {selectedEcommerce === "standard" ? "Selected ✓" : "Choose Package"}
                       </button>
                     </div>
                   </div>

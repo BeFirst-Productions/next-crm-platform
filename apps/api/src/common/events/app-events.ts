@@ -39,6 +39,7 @@ export interface LeadStatusChangedPayload {
     contactName: string;
     status: string;
   };
+  clientId?: string;
   oldStatus: string;
   newStatus: string;
   actor: {
