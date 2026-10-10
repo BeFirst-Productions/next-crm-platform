@@ -80,20 +80,27 @@ export const DEFAULT_PROPOSAL_HTML_TEMPLATE = `
       margin-bottom: 32px;
     }
     .brand-title {
-      font-size: 28px;
-      font-weight: 800;
-      background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: #ffffff;
+    }
+    .brand-subtitle {
+      font-size: 11px;
+      font-weight: 700;
+      color: #38bdf8;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-top: 2px;
     }
     .proposal-badge {
-      background: rgba(99, 102, 241, 0.2);
-      border: 1px solid rgba(99, 102, 241, 0.4);
+      background: rgba(0, 163, 255, 0.15);
+      border: 1px solid rgba(0, 163, 255, 0.4);
       padding: 6px 16px;
       border-radius: 9999px;
       font-size: 14px;
-      font-weight: 600;
-      color: #818cf8;
+      font-weight: 700;
+      color: #38bdf8;
     }
     .grid-2 {
       display: grid;
@@ -234,8 +241,9 @@ export const DEFAULT_PROPOSAL_HTML_TEMPLATE = `
   <div class="container">
     <div class="header">
       <div>
-        <div class="brand-title">NEXT DIGITAL CRM</div>
-        <p style="font-size: 13px; color: #94a3b8; margin-top: 4px;">Service Category: {{categoryName}}</p>
+        <div class="brand-title">nEXT | befirst</div>
+        <div class="brand-subtitle">A DIVISION OF BEFIRST MEDIA PRODUCTIONS</div>
+        <p style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Service Category: {{categoryName}} | www.nextmedia.ae</p>
       </div>
       <div class="proposal-badge">{{proposalNumber}}</div>
     </div>
@@ -344,6 +352,25 @@ export const DEFAULT_PROPOSAL_HTML_TEMPLATE = `
         <span>Total Investment:</span>
         <span>\${{total}}</span>
       </div>
+    </div>
+
+    <div style="margin: 24px 0; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 18px;">
+      <div style="font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Commercial Terms &amp; Payment Schedule</div>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; font-size: 12px;">
+        <div style="background: rgba(15, 23, 42, 0.6); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); text-align: center;">
+          <div style="font-weight: 800; color: #38bdf8; font-size: 14px;">50%</div>
+          <div style="color: #cbd5e1; margin-top: 2px;">Project Confirmation</div>
+        </div>
+        <div style="background: rgba(15, 23, 42, 0.6); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); text-align: center;">
+          <div style="font-weight: 800; color: #38bdf8; font-size: 14px;">30%</div>
+          <div style="color: #cbd5e1; margin-top: 2px;">Development Milestone</div>
+        </div>
+        <div style="background: rgba(15, 23, 42, 0.6); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); text-align: center;">
+          <div style="font-weight: 800; color: #38bdf8; font-size: 14px;">20%</div>
+          <div style="color: #cbd5e1; margin-top: 2px;">Final Handover &amp; Live</div>
+        </div>
+      </div>
+      <div style="font-size: 11px; color: #94a3b8; margin-top: 10px;">Includes 30 days post-launch technical support &amp; warranty. Deliverables handed over upon full payment.</div>
     </div>
 
     {{#if notes}}

@@ -26,6 +26,12 @@ export async function create(req: Request, res: Response) {
   return ApiResponse.created(res, proposal, "Proposal created");
 }
 
+export async function saveClientProposal(req: Request, res: Response) {
+  const proposal = await service.saveClientProposal(req.body, req.user?.sub);
+  return ApiResponse.created(res, proposal, "Client proposal saved successfully");
+}
+
+
 export async function updateItems(req: Request, res: Response) {
   const { items, discount, taxRatePercent } = req.body;
   const proposal = await service.recalculateProposalItems(req.params.id, items, discount, taxRatePercent, req.user!.sub);

@@ -138,6 +138,11 @@ export async function fetchPackages(categoryId?: string, search?: string): Promi
   return res.data;
 }
 
+export async function getPackageById(id: string): Promise<PackageItem> {
+  const res = await apiClient<PackageItem>(`/packages/${id}`, { requiresAuth: false });
+  return res.data;
+}
+
 export async function createPackage(data: {
   categoryId: string;
   name: string;
@@ -238,3 +243,87 @@ export async function deleteAddon(id: string): Promise<{ deleted: boolean }> {
   });
   return res.data;
 }
+
+export async function fetchPackageFeatures(packageId: string): Promise<PackageFeature[]> {
+  const res = await apiClient<PackageFeature[]>(`/packages/${packageId}/features`);
+  return res.data;
+}
+
+// ─── Proposal Persistence ───────────────────────────────────────────────────
+
+export interface SaveClientProposalPayload {
+  companyDetails: {
+    companyName: string;
+    contactPerson: string;
+    emailAddress?: string;
+    contactNumber?: string;
+    location?: string;
+    industry?: string;
+    requiredServices?: string;
+    expectedDeliveryDate?: string;
+    projectDescription?: string;
+    additionalNotes?: string;
+  };
+  packageSelection?: {
+    category?: string;
+    tier?: string | null;
+    ecommerce?: string | null;
+  };
+  packageId?: string;
+  packageName?: string;
+  packagePrice?: number;
+  selectedAddons?: Array<{
+    id: string;
+    name: string;
+    price: number;
+  }>;
+  subTotal?: number;
+  vatAmount?: number;
+  grandTotal?: number;
+  status?: "DRAFT" | "SUBMITTED";
+  notes?: string;
+}
+
+export interface SavedProposalResult {
+  id: string;
+  proposalNumber: string;
+  leadId?: string;
+  clientId?: string | null;
+  salesStaffId: string;
+  status: string;
+  subtotal: number | string;
+  discount: number | string;
+  tax: number | string;
+  total: number | string;
+  createdAt: string;
+  items: Array<{
+    id: string;
+    itemType: string;
+    name: string;
+    quantity: number;
+    unitPrice: number | string;
+    total: number | string;
+  }>;
+  lead?: {
+    id: string;
+    customLeadId?: string;
+    companyName: string;
+    contactPerson: string;
+    email?: string;
+    phone?: string;
+  };
+}
+
+export async function saveClientProposal(
+  data: SaveClientProposalPayload
+): Promise<SavedProposalResult> {
+  const res = await apiClient<SavedProposalResult>("/proposals/client-save", {
+    method: "POST",
+    body: data,
+    requiresAuth: false,
+  });
+  return res.data;
+}
+
+
+

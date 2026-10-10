@@ -9,27 +9,35 @@ import {
   ArrowLeft,
   ArrowRight,
 } from "lucide-react";
-import { useProposalStore, ALL_ADDONS } from "@/stores";
+import { useProposalStore, ALL_ADDONS, type AddonItemData } from "@/stores";
+import {
+  fetchPackages,
+  fetchAddons,
+  fetchCategories,
+  type PackageItem,
+  type AddonItem,
+  type ServiceCategory,
+} from "@/lib/catalog-api";
 
-// Helper to resolve Package details from Zustand packageSelection
+// Helper fallback to resolve Package details from Zustand packageSelection
 const PACKAGE_PRICES: Record<string, { name: string; price: number }> = {
   // Web tiers
   basic: { name: "BASIC", price: 799 },
   starter: { name: "STARTER", price: 1499 },
   business: { name: "BUSINESS", price: 2499 },
-  professional: { name: "PROFESSIONAL", price: 5500 },
+  professional: { name: "PROFESSIONAL", price: 3999 },
   premium: { name: "PREMIUM", price: 6999 },
-  mini: { name: "MINI E-COMMERCE", price: 3999 },
+  mini: { name: "MINI E-COMMERCE", price: 3499 },
   standard: { name: "STANDARD E-COMMERCE", price: 5999 },
 
   // Marketing tiers
-  growth: { name: "GROWTH MARKETING", price: 4499 },
-  scale: { name: "SCALE MARKETING", price: 9999 },
+  growth: { name: "GROWTH", price: 1999 },
+  scale: { name: "SCALE", price: 4499 },
 
   // SEO tiers
-  "local-seo": { name: "LOCAL SEO", price: 1800 },
-  "growth-seo": { name: "GROWTH SEO", price: 3200 },
-  "authority-seo": { name: "AUTHORITY SEO", price: 5500 },
+  "local-seo": { name: "LOCAL SEO", price: 799 },
+  "growth-seo": { name: "GROWTH SEO", price: 1499 },
+  "authority-seo": { name: "AUTHORITY SEO", price: 2499 },
 
   // Branding tiers
   "brand-starter": { name: "BRAND STARTER", price: 999 },
@@ -37,11 +45,16 @@ const PACKAGE_PRICES: Record<string, { name: string; price: number }> = {
   "complete-brand": { name: "COMPLETE BRAND", price: 3499 },
   "content-starter": { name: "CONTENT STARTER", price: 799 },
   "content-growth": { name: "CONTENT GROWTH", price: 1499 },
-  "content-pro": { name: "CONTENT PRO", price: 2999 },
-  "lead-starter": { name: "LEAD STARTER", price: 1299 },
+  "content-pro": { name: "CONTENT PRO", price: 2499 },
+  "lead-starter": { name: "LEAD STARTER", price: 1499 },
   "lead-growth": { name: "LEAD GROWTH", price: 2499 },
-  "lead-scale": { name: "LEAD SCALE", price: 4999 },
-  "growth-360": { name: "GROWTH 360", price: 8500 },
+  "lead-scale": { name: "LEAD SCALE", price: 3999 },
+  "growth-360": { name: "GROWTH 360", price: 4999 },
+
+  // Video tiers
+  "video-starter": { name: "REELS & SHORTS STARTER", price: 999 },
+  "video-growth": { name: "COMMERCIAL & BRAND GROWTH", price: 2499 },
+  "video-pro": { name: "CINEMATIC ENTERPRISE SUITE", price: 4999 },
 };
 
 export default function ClientPortalAddonsPage() {
@@ -59,26 +72,274 @@ export default function ClientPortalAddonsPage() {
     setIsSaved,
   } = useProposalStore();
 
-  // Selected package details
+  // Backend packages, categories & addons integration
+  const [dbPackages, setDbPackages] = React.useState<PackageItem[]>([]);
+  const [dbCategories, setDbCategories] = React.useState<ServiceCategory[]>([]);
+  const [dbAddons, setDbAddons] = React.useState<AddonItem[]>([]);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    Promise.all([
+      fetchPackages().catch(() => []),
+      fetchAddons().catch(() => []),
+      fetchCategories().catch(() => []),
+    ]).then(([pkgs, addons, cats]) => {
+      if (isMounted) {
+        if (pkgs && pkgs.length > 0) setDbPackages(pkgs);
+        if (addons && addons.length > 0) setDbAddons(addons);
+        if (cats && cats.length > 0) setDbCategories(cats);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Active category derived directly from proposalStore packageSelection.category
+  const activeCategory = React.useMemo(() => {
+    const storeCat = packageSelection.category;
+
+    // 1. Direct ID match from proposalStore packageSelection.category
+    if (storeCat) {
+      const directMatch = dbCategories.find((c) => c.id === storeCat);
+      if (directMatch) return directMatch;
+
+      // 2. Exact name match
+      const nameMatch = dbCategories.find(
+        (c) => c.name.toLowerCase() === storeCat.toLowerCase()
+      );
+      if (nameMatch) return nameMatch;
+
+      // 3. Slug / keyword match
+      const slug = storeCat.toLowerCase();
+      const slugMatch = dbCategories.find((c) => {
+        const cn = c.name.toLowerCase();
+        if ((slug === "web" || slug === "website") && (cn.includes("web") || cn.includes("site"))) return true;
+        if (slug === "seo" && (cn.includes("seo") || cn.includes("geo"))) return true;
+        if (slug === "social" && (cn.includes("social") || cn.includes("brand"))) return true;
+        if (slug === "ecommerce" && (cn.includes("commerce") || cn.includes("mini") || cn.includes("shop"))) return true;
+        if (slug === "marketing" && (cn.includes("market") || cn.includes("digital"))) return true;
+        if (slug === "video" && (cn.includes("video") || cn.includes("film") || cn.includes("reel"))) return true;
+        return false;
+      });
+      if (slugMatch) return slugMatch;
+    }
+
+    // Fallback heuristic based on tier key
+    const targetKey = (
+      packageSelection.ecommerce ||
+      packageSelection.tier ||
+      "professional"
+    ).toLowerCase();
+
+    if (targetKey.includes("seo")) {
+      const seo = dbCategories.find((c) => c.name.toLowerCase().includes("seo"));
+      if (seo) return seo;
+    }
+    if (
+      targetKey.includes("video") ||
+      targetKey.includes("reel") ||
+      targetKey.includes("cinematic") ||
+      targetKey.includes("short")
+    ) {
+      const vid = dbCategories.find((c) => c.name.toLowerCase().includes("video"));
+      if (vid) return vid;
+    }
+    if (
+      targetKey.includes("brand") ||
+      targetKey.includes("content") ||
+      targetKey.includes("lead")
+    ) {
+      const sm = dbCategories.find(
+        (c) =>
+          c.name.toLowerCase().includes("social") ||
+          c.name.toLowerCase().includes("brand")
+      );
+      if (sm) return sm;
+    }
+    if (
+      targetKey.includes("market") ||
+      targetKey.includes("growth") ||
+      targetKey.includes("scale")
+    ) {
+      const dm = dbCategories.find((c) => c.name.toLowerCase().includes("market"));
+      if (dm) return dm;
+    }
+    if (targetKey.includes("ecom") || targetKey.includes("mini")) {
+      const ecom = dbCategories.find(
+        (c) =>
+          c.name.toLowerCase().includes("e-com") ||
+          c.name.toLowerCase().includes("mini")
+      );
+      if (ecom) return ecom;
+    }
+
+    const web = dbCategories.find((c) => c.name.toLowerCase().includes("web"));
+    if (web) return web;
+
+    return dbCategories[0] || null;
+  }, [packageSelection, dbCategories]);
+
+  // Selected package details dynamically resolved from DB matching the active category
+  const selectedPackage = React.useMemo(() => {
+    const targetKey = (
+      packageSelection.ecommerce ||
+      packageSelection.tier ||
+      "professional"
+    ).toLowerCase();
+
+    if (dbPackages.length === 0) return null;
+
+    const activeCatId = activeCategory?.id;
+    const activeCatName = activeCategory?.name?.toLowerCase() || "";
+
+    // Candidate packages prioritized within the active category
+    const categoryPackages = dbPackages.filter((p) => {
+      if (activeCatId && (p.categoryId === activeCatId || p.category?.id === activeCatId)) return true;
+      if (activeCatName && p.category?.name) {
+        const pCatName = p.category.name.toLowerCase();
+        if (pCatName === activeCatName) return true;
+        if (activeCatName.includes("web") && pCatName.includes("web")) return true;
+        if (activeCatName.includes("seo") && pCatName.includes("seo")) return true;
+        if (activeCatName.includes("social") && pCatName.includes("social")) return true;
+        if (activeCatName.includes("market") && pCatName.includes("market")) return true;
+        if (activeCatName.includes("video") && pCatName.includes("video")) return true;
+      }
+      return false;
+    });
+
+    const pool = categoryPackages.length > 0 ? categoryPackages : dbPackages;
+
+    // 1. Exact ID or pkg-{targetKey} match within pool
+    const exactMatch = pool.find((p) => {
+      const id = p.id.toLowerCase();
+      const name = p.name.toLowerCase();
+      return (
+        id === targetKey ||
+        id === `pkg-${targetKey}` ||
+        name === targetKey
+      );
+    });
+    if (exactMatch) return exactMatch;
+
+    // 2. Suffix or segment match within pool (e.g. pkg-website-starter matching "starter")
+    const segmentMatch = pool.find((p) => {
+      const id = p.id.toLowerCase();
+      const name = p.name.toLowerCase();
+      const parts = id.replace("pkg-", "").split("-");
+      return (
+        parts.includes(targetKey) ||
+        id.endsWith(`-${targetKey}`) ||
+        name.includes(targetKey)
+      );
+    });
+    if (segmentMatch) return segmentMatch;
+
+    // 3. Fallback to includes within pool
+    return pool.find((p) => p.id.toLowerCase().includes(targetKey)) || null;
+  }, [packageSelection, dbPackages, activeCategory]);
+
+  // Package name and base price for display and billing
   const packageInfo = React.useMemo(() => {
-    if (packageSelection.ecommerce) {
-      return PACKAGE_PRICES[packageSelection.ecommerce] || { name: "E-COMMERCE", price: 3999 };
+    if (selectedPackage) {
+      return {
+        name: selectedPackage.name,
+        price: Number(selectedPackage.price) || 0,
+      };
     }
-    if (packageSelection.tier) {
-      return PACKAGE_PRICES[packageSelection.tier] || { name: "PROFESSIONAL", price: 5500 };
-    }
-    return { name: "PROFESSIONAL", price: 5500 };
-  }, [packageSelection]);
 
-  // Selected Add-ons items list
+    if (packageSelection.ecommerce && PACKAGE_PRICES[packageSelection.ecommerce]) {
+      return PACKAGE_PRICES[packageSelection.ecommerce];
+    }
+    if (packageSelection.tier && PACKAGE_PRICES[packageSelection.tier]) {
+      return PACKAGE_PRICES[packageSelection.tier];
+    }
+    return { name: "PROFESSIONAL", price: 3999 };
+  }, [selectedPackage, packageSelection]);
+
+  // Only show the add-ons created for that particular category from the DB
+  const effectiveCategoryAddons: AddonItemData[] = React.useMemo(() => {
+    if (dbAddons.length > 0) {
+      const targetCatId = activeCategory?.id || selectedPackage?.categoryId;
+      const targetCatName = (
+        activeCategory?.name ||
+        selectedPackage?.category?.name ||
+        ""
+      ).toLowerCase();
+
+      // Filter addons belonging ONLY to this category from DB
+      const matchedAddons = dbAddons.filter((a) => {
+        // Direct categoryId or category.id match
+        if (targetCatId && (a.categoryId === targetCatId || a.category?.id === targetCatId)) {
+          return true;
+        }
+
+        // Name match fallback if IDs are uuid variants
+        if (targetCatName && a.category?.name) {
+          const aCatName = a.category.name.toLowerCase();
+          if (aCatName === targetCatName) return true;
+          if (targetCatName.includes("seo") && aCatName.includes("seo")) return true;
+          if (targetCatName.includes("video") && aCatName.includes("video")) return true;
+          if (targetCatName.includes("social") && aCatName.includes("social")) return true;
+          if (targetCatName.includes("market") && aCatName.includes("market")) return true;
+          if (targetCatName.includes("web") && aCatName.includes("web")) return true;
+        }
+
+        return false;
+      });
+
+      return matchedAddons.map((a) => {
+        const catName = a.category?.name?.toLowerCase() || "";
+        let category: "web" | "marketing" | "seo" | "media" | "tech" = "tech";
+        if (catName.includes("web") || catName.includes("e-commerce")) category = "web";
+        else if (catName.includes("market") || catName.includes("social")) category = "marketing";
+        else if (catName.includes("seo")) category = "seo";
+        else if (catName.includes("video")) category = "media";
+
+        return {
+          id: a.id,
+          name: a.name,
+          price: Number(a.price) || 0,
+          unit:
+            a.pricingType === "MONTHLY"
+              ? "/ month"
+              : a.pricingType === "YEARLY"
+              ? "/ year"
+              : undefined,
+          category,
+        };
+      });
+    }
+
+    // Static fallback if DB is not populated
+    const fallbackKey = (
+      activeCategory?.name ||
+      packageSelection.category ||
+      packageSelection.tier ||
+      "web"
+    ).toLowerCase();
+    const fallbackCategory = fallbackKey.includes("seo")
+      ? "seo"
+      : fallbackKey.includes("video")
+      ? "media"
+      : fallbackKey.includes("market") ||
+        fallbackKey.includes("social") ||
+        fallbackKey.includes("brand")
+      ? "marketing"
+      : "web";
+
+    return ALL_ADDONS.filter((addon) => addon.category === fallbackCategory);
+  }, [dbAddons, activeCategory, selectedPackage, packageSelection]);
+
+  // Selected Add-ons items list (only matching the current category)
   const selectedAddonsList = React.useMemo(() => {
-    return ALL_ADDONS.filter((addon) => selectedAddonIds.includes(addon.id));
-  }, [selectedAddonIds]);
+    return effectiveCategoryAddons.filter((addon) => selectedAddonIds.includes(addon.id));
+  }, [effectiveCategoryAddons, selectedAddonIds]);
 
-  // Available catalogue items (all add-ons not currently selected)
+  // Available catalogue items (all add-ons in this category not currently selected)
   const availableAddonsList = React.useMemo(() => {
-    return ALL_ADDONS.filter((addon) => !selectedAddonIds.includes(addon.id));
-  }, [selectedAddonIds]);
+    return effectiveCategoryAddons.filter((addon) => !selectedAddonIds.includes(addon.id));
+  }, [effectiveCategoryAddons, selectedAddonIds]);
 
   // Pricing calculations
   const packagePrice = packageInfo.price;
@@ -250,28 +511,38 @@ export default function ClientPortalAddonsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#13233c]">
-                      {availableAddonsList.map((addon) => (
-                        <tr
-                          key={addon.id}
-                          className="hover:bg-[#0d1c33]/60 transition-colors"
-                        >
-                          <td className="py-3 px-4 text-slate-300 font-medium">
-                            {addon.name}
-                          </td>
-                          <td className="py-3 px-4 text-center font-bold text-slate-200 font-mono">
-                            AED {addon.price.toLocaleString()}
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <button
-                              type="button"
-                              onClick={() => addAddon(addon.id)}
-                              className="bg-[#00a3ff] hover:bg-[#0092e0] text-white text-[11px] font-bold px-3 py-1 rounded shadow-sm shadow-sky-500/25 transition-all cursor-pointer active:scale-95"
-                            >
-                              + Add
-                            </button>
+                      {availableAddonsList.length > 0 ? (
+                        availableAddonsList.map((addon) => (
+                          <tr
+                            key={addon.id}
+                            className="hover:bg-[#0d1c33]/60 transition-colors"
+                          >
+                            <td className="py-3 px-4 text-slate-300 font-medium">
+                              {addon.name}
+                            </td>
+                            <td className="py-3 px-4 text-center font-bold text-slate-200 font-mono">
+                              AED {addon.price.toLocaleString()}
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <button
+                                type="button"
+                                onClick={() => addAddon(addon.id)}
+                                className="bg-[#00a3ff] hover:bg-[#0092e0] text-white text-[11px] font-bold px-3 py-1 rounded shadow-sm shadow-sky-500/25 transition-all cursor-pointer active:scale-95"
+                              >
+                                + Add
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={3} className="py-8 text-center text-slate-400 italic">
+                            {effectiveCategoryAddons.length === 0
+                              ? "No add-ons available for this category."
+                              : "All available add-ons for this category have been added."}
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -299,41 +570,50 @@ export default function ClientPortalAddonsPage() {
                   ORDER SUMMARY
                 </h3>
 
-                {/* Package Info */}
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    PACKAGE
-                  </span>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-white uppercase">{packageInfo.name}</span>
-                    <span className="font-mono font-bold text-slate-200">
-                      AED {packagePrice.toLocaleString()}
+                {/* Items Breakdown */}
+                <div className="space-y-3.5 text-xs">
+                  {/* Selected Package */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      PACKAGE
                     </span>
-                  </div>
-                </div>
-
-                <div className="border-t border-[#162a4a]" />
-
-                {/* Breakdown List */}
-                <div className="space-y-2.5 text-xs">
-                  <div className="flex items-center justify-between text-slate-400">
-                    <span>Package Base:</span>
-                    <span className="font-mono text-slate-200">
-                      AED {packagePrice.toLocaleString()}
-                    </span>
-                  </div>
-
-                  {selectedAddonsList.map((addon) => (
-                    <div
-                      key={addon.id}
-                      className="flex items-center justify-between text-slate-400"
-                    >
-                      <span className="truncate pr-2">{addon.name}:</span>
-                      <span className="font-mono text-slate-200 shrink-0">
-                        AED {addon.price.toLocaleString()}
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-white uppercase">{packageInfo.name}</span>
+                      <span className="font-mono font-bold text-slate-200">
+                        AED {packagePrice.toLocaleString()}
                       </span>
                     </div>
-                  ))}
+                  </div>
+
+                  <div className="border-t border-[#162a4a]" />
+
+                  {/* Selected Add-ons */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        ADD-ONS {selectedAddonsList.length > 0 ? `(${selectedAddonsList.length})` : ""}
+                      </span>
+                      {selectedAddonsList.length === 0 && (
+                        <span className="text-[11px] text-slate-500 italic">None selected</span>
+                      )}
+                    </div>
+
+                    {selectedAddonsList.length > 0 ? (
+                      <div className="space-y-2 pt-0.5">
+                        {selectedAddonsList.map((addon) => (
+                          <div
+                            key={addon.id}
+                            className="flex items-center justify-between text-slate-400"
+                          >
+                            <span className="truncate pr-2 font-medium text-slate-300">{addon.name}</span>
+                            <span className="font-mono text-slate-200 shrink-0 font-semibold">
+                              AED {addon.price.toLocaleString()}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
 
                 <div className="border-t border-[#162a4a]" />
@@ -342,13 +622,13 @@ export default function ClientPortalAddonsPage() {
                 <div className="space-y-1.5 text-xs">
                   <div className="flex items-center justify-between text-slate-400">
                     <span>Sub Total:</span>
-                    <span className="font-mono text-slate-200">
-                      AED {subTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    <span className="font-mono text-slate-200 font-semibold">
+                      AED {subTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-slate-400">
                     <span>VAT (5%):</span>
-                    <span className="font-mono text-slate-200">
+                    <span className="font-mono text-slate-200 font-semibold">
                       AED {vatAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>

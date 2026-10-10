@@ -46,3 +46,41 @@ export const transitionSchema = z.object({
   params: z.object({ id: z.string().uuid() }),
   body: z.object({ note: z.string().optional() }),
 });
+
+export const saveClientProposalSchema = z.object({
+  body: z.object({
+    companyDetails: z.object({
+      companyName: z.string().min(1, "Company name is required"),
+      contactPerson: z.string().min(1, "Contact person is required"),
+      emailAddress: z.string().optional(),
+      contactNumber: z.string().optional(),
+      location: z.string().optional(),
+      industry: z.string().optional(),
+      requiredServices: z.string().optional(),
+      expectedDeliveryDate: z.string().optional(),
+      projectDescription: z.string().optional(),
+      additionalNotes: z.string().optional(),
+    }),
+    packageSelection: z.object({
+      category: z.string().optional(),
+      tier: z.string().nullable().optional(),
+      ecommerce: z.string().nullable().optional(),
+    }).optional(),
+    packageId: z.string().optional(),
+    packageName: z.string().optional(),
+    packagePrice: z.coerce.number().optional(),
+    selectedAddons: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        price: z.coerce.number(),
+      })
+    ).optional(),
+    subTotal: z.coerce.number().optional(),
+    vatAmount: z.coerce.number().optional(),
+    grandTotal: z.coerce.number().optional(),
+    status: z.enum(["DRAFT", "SUBMITTED"]).optional(),
+    notes: z.string().optional(),
+  }),
+});
+

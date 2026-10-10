@@ -99,11 +99,11 @@ export async function listPackages(categoryId?: string, search?: string) {
       ...(categoryId ? { categoryId } : {}),
       ...(search
         ? {
-            OR: [
-              { name: { contains: search, mode: "insensitive" } },
-              { description: { contains: search, mode: "insensitive" } },
-            ],
-          }
+          OR: [
+            { name: { contains: search, mode: "insensitive" } },
+            { description: { contains: search, mode: "insensitive" } },
+          ],
+        }
         : {}),
     },
     include: {
@@ -143,10 +143,17 @@ export async function createPackage(
   if (!category) throw new NotFoundError("Service category");
 
   const { features, ...pkgData } = data;
+  const cleanFeatures = features?.map((f) => ({
+    featureName: f.featureName,
+    featureValue: f.featureValue ?? null,
+    included: f.included ?? true,
+    sortOrder: f.sortOrder ?? 0,
+  }));
+
   const pkg = await prisma.package.create({
     data: {
       ...pkgData,
-      features: features?.length ? { create: features } : undefined,
+      features: cleanFeatures?.length ? { create: cleanFeatures } : undefined,
     },
     include: { features: true, category: true },
   });
@@ -157,7 +164,7 @@ export async function createPackage(
 export async function updatePackage(id: string, data: Record<string, unknown>, actorId: string) {
   const before = await getPackageById(id);
   const { features, ...pkgData } = data as {
-    features?: Array<{ featureName: string; featureValue?: string; included?: boolean; sortOrder?: number }>;
+    features?: Array<{ id?: string; featureName: string; featureValue?: string | null; included?: boolean; sortOrder?: number }>;
     [key: string]: unknown;
   };
 
@@ -171,7 +178,13 @@ export async function updatePackage(id: string, data: Record<string, unknown>, a
     await prisma.packageFeature.deleteMany({ where: { packageId: id } });
     if (features.length > 0) {
       await prisma.packageFeature.createMany({
-        data: features.map((f) => ({ ...f, packageId: id })),
+        data: features.map((f) => ({
+          featureName: f.featureName,
+          featureValue: f.featureValue ?? null,
+          included: f.included ?? true,
+          sortOrder: f.sortOrder ?? 0,
+          packageId: id,
+        })),
       });
     }
   }
@@ -212,11 +225,11 @@ export async function listAddons(categoryId?: string, search?: string) {
       ...(categoryId ? { categoryId } : {}),
       ...(search
         ? {
-            OR: [
-              { name: { contains: search, mode: "insensitive" } },
-              { description: { contains: search, mode: "insensitive" } },
-            ],
-          }
+          OR: [
+            { name: { contains: search, mode: "insensitive" } },
+            { description: { contains: search, mode: "insensitive" } },
+          ],
+        }
         : {}),
     },
     include: { category: true },

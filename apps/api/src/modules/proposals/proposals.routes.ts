@@ -1,15 +1,21 @@
 import { Router } from "express";
 import * as controller from "@/modules/proposals/proposals.controller";
-import { authenticate } from "@/common/middleware/authenticate";
+import { authenticate, authenticateOptional } from "@/common/middleware/authenticate";
 import { authorize } from "@/common/middleware/authorize";
 import { validate } from "@/common/middleware/validate";
 import { PERMISSIONS } from "@/common/constants/roles";
 import {
   createProposalSchema, idParamSchema, listProposalsSchema, transitionSchema, updateProposalItemsSchema,
+  saveClientProposalSchema,
 } from "@/modules/proposals/proposals.validation";
 
 const router = Router();
+
+// Public / Portal client proposal saving (authenticates if user token present, fallback if not)
+router.post("/client-save", authenticateOptional, validate(saveClientProposalSchema), controller.saveClientProposal);
+
 router.use(authenticate);
+
 
 router.get("/", authorize(PERMISSIONS.PROPOSALS_VIEW_OWN), validate(listProposalsSchema), controller.list);
 router.get("/:id", authorize(PERMISSIONS.PROPOSALS_VIEW_OWN), validate(idParamSchema), controller.getById);

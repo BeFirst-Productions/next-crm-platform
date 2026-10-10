@@ -20,9 +20,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
-  X,
   ChevronDown,
 } from "lucide-react";
+import { apiClient } from "@/lib/api-client";
+import { useToast } from "@/hooks/useToast";
+import { CreateUserFormCard, PRESET_AVATARS } from "@/components/admin/CreateUserFormCard";
 
 // ============================================================================
 // TYPES
@@ -48,467 +50,107 @@ export interface ManagedUser {
 }
 
 // ============================================================================
-// INITIAL SEED DATA (32 Users matching the reference screenshot exactly)
-// ============================================================================
-
-const SEED_USERS: ManagedUser[] = [
-  {
-    id: "1",
-    employeeId: "USR-1001",
-    name: "Ahmed Khan",
-    email: "ahmed.khan@next.com",
-    phone: "+971 50 123 4567",
-    role: "Admin",
-    department: "Administration",
-    joiningDate: "10 Jan 2025",
-    salesTarget: 0,
-    commissionRate: 0,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "2",
-    employeeId: "USR-1002",
-    name: "Rahul Sharma",
-    email: "rahul.sharma@next.com",
-    phone: "+971 55 987 6543",
-    role: "Sales Executive",
-    department: "Sales",
-    joiningDate: "15 Feb 2025",
-    salesTarget: 50000,
-    commissionRate: 10,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "3",
-    employeeId: "USR-1003",
-    name: "Fatima Ali",
-    email: "fatima.ali@next.com",
-    phone: "+971 52 456 7890",
-    role: "Sales Executive",
-    department: "Sales",
-    joiningDate: "20 Feb 2025",
-    salesTarget: 45000,
-    commissionRate: 8,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "4",
-    employeeId: "USR-1004",
-    name: "Jason D'souza",
-    email: "jason.dsouza@next.com",
-    phone: "+971 54 321 6789",
-    role: "Marketing Executive",
-    department: "Marketing",
-    joiningDate: "05 Mar 2025",
-    salesTarget: 30000,
-    commissionRate: 7,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "5",
-    employeeId: "USR-1005",
-    name: "Neha Patel",
-    email: "neha.patel@next.com",
-    phone: "+971 58 654 1237",
-    role: "Marketing Executive",
-    department: "Marketing",
-    joiningDate: "12 Mar 2025",
-    salesTarget: 32000,
-    commissionRate: 7,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "6",
-    employeeId: "USR-1006",
-    name: "Vikram Singh",
-    email: "vikram.singh@next.com",
-    phone: "+971 56 789 4561",
-    role: "Sales Executive",
-    department: "Sales",
-    joiningDate: "18 Mar 2025",
-    salesTarget: 40000,
-    commissionRate: 8,
-    status: "Inactive",
-    avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "7",
-    employeeId: "USR-1007",
-    name: "Priya Nair",
-    email: "priya.nair@next.com",
-    phone: "+971 55 147 2580",
-    role: "Marketing Executive",
-    department: "Marketing",
-    joiningDate: "25 Mar 2025",
-    salesTarget: 28000,
-    commissionRate: 6,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "8",
-    employeeId: "USR-1008",
-    name: "Arjun Mehta",
-    email: "arjun.mehta@next.com",
-    phone: "+971 50 369 8521",
-    role: "Sales Executive",
-    department: "Sales",
-    joiningDate: "02 Apr 2025",
-    salesTarget: 35000,
-    commissionRate: 7,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "9",
-    employeeId: "USR-1009",
-    name: "Sneha Verma",
-    email: "sneha.verma@next.com",
-    phone: "+971 52 741 9630",
-    role: "Marketing Executive",
-    department: "Marketing",
-    joiningDate: "10 Apr 2025",
-    salesTarget: 25000,
-    commissionRate: 6,
-    status: "Inactive",
-    avatar: "https://images.unsplash.com/photo-1534751516642-a171ed292022?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "10",
-    employeeId: "USR-1010",
-    name: "Daniel George",
-    email: "daniel.george@next.com",
-    phone: "+971 54 852 7410",
-    role: "Admin",
-    department: "Administration",
-    joiningDate: "20 Apr 2025",
-    salesTarget: 0,
-    commissionRate: 0,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  // Additional entries to support 32 total records across 4 pages
-  {
-    id: "11",
-    employeeId: "USR-1011",
-    name: "Kareem Zaid",
-    email: "kareem.zaid@next.com",
-    phone: "+971 50 998 1122",
-    role: "Sales Executive",
-    department: "Sales",
-    joiningDate: "28 Apr 2025",
-    salesTarget: 48000,
-    commissionRate: 9,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "12",
-    employeeId: "USR-1012",
-    name: "Layla Mansour",
-    email: "layla.mansour@next.com",
-    phone: "+971 55 334 5566",
-    role: "Marketing Executive",
-    department: "Marketing",
-    joiningDate: "04 May 2025",
-    salesTarget: 31000,
-    commissionRate: 7,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "13",
-    employeeId: "USR-1013",
-    name: "Tariq Mahmoud",
-    email: "tariq.mahmoud@next.com",
-    phone: "+971 52 778 9900",
-    role: "Admin",
-    department: "Operations",
-    joiningDate: "12 May 2025",
-    salesTarget: 0,
-    commissionRate: 0,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "14",
-    employeeId: "USR-1014",
-    name: "Reem Al Hashimi",
-    email: "reem.hashimi@next.com",
-    phone: "+971 58 112 3344",
-    role: "Sales Executive",
-    department: "Sales",
-    joiningDate: "18 May 2025",
-    salesTarget: 52000,
-    commissionRate: 10,
-    status: "Inactive",
-    avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "15",
-    employeeId: "USR-1015",
-    name: "Hassan Qureshi",
-    email: "hassan.qureshi@next.com",
-    phone: "+971 54 445 6677",
-    role: "Sales Executive",
-    department: "Sales",
-    joiningDate: "25 May 2025",
-    salesTarget: 42000,
-    commissionRate: 8,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "16",
-    employeeId: "USR-1016",
-    name: "Nour Al Kaabi",
-    email: "nour.kaabi@next.com",
-    phone: "+971 50 667 8899",
-    role: "Marketing Executive",
-    department: "Marketing",
-    joiningDate: "01 Jun 2025",
-    salesTarget: 29000,
-    commissionRate: 6,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "17",
-    employeeId: "USR-1017",
-    name: "Bilal Farooq",
-    email: "bilal.farooq@next.com",
-    phone: "+971 55 889 0011",
-    role: "Admin",
-    department: "Finance",
-    joiningDate: "10 Jun 2025",
-    salesTarget: 0,
-    commissionRate: 0,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "18",
-    employeeId: "USR-1018",
-    name: "Zainab Rashid",
-    email: "zainab.rashid@next.com",
-    phone: "+971 52 223 4455",
-    role: "Sales Executive",
-    department: "Sales",
-    joiningDate: "16 Jun 2025",
-    salesTarget: 46000,
-    commissionRate: 8,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "19",
-    employeeId: "USR-1019",
-    name: "Omar Bakir",
-    email: "omar.bakir@next.com",
-    phone: "+971 56 332 1144",
-    role: "Marketing Executive",
-    department: "Marketing",
-    joiningDate: "22 Jun 2025",
-    salesTarget: 27000,
-    commissionRate: 6,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "20",
-    employeeId: "USR-1020",
-    name: "Maya Haddad",
-    email: "maya.haddad@next.com",
-    phone: "+971 50 776 5544",
-    role: "Sales Executive",
-    department: "Sales",
-    joiningDate: "30 Jun 2025",
-    salesTarget: 39000,
-    commissionRate: 7,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "21",
-    employeeId: "USR-1021",
-    name: "Farhan Saeed",
-    email: "farhan.saeed@next.com",
-    phone: "+971 55 443 2211",
-    role: "Admin",
-    department: "IT",
-    joiningDate: "05 Jul 2025",
-    salesTarget: 0,
-    commissionRate: 0,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "22",
-    employeeId: "USR-1022",
-    name: "Sana Mir",
-    email: "sana.mir@next.com",
-    phone: "+971 52 998 7766",
-    role: "Marketing Executive",
-    department: "Marketing",
-    joiningDate: "14 Jul 2025",
-    salesTarget: 34000,
-    commissionRate: 7,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "23",
-    employeeId: "USR-1023",
-    name: "Hamza Tariq",
-    email: "hamza.tariq@next.com",
-    phone: "+971 58 554 3322",
-    role: "Sales Executive",
-    department: "Sales",
-    joiningDate: "20 Jul 2025",
-    salesTarget: 41000,
-    commissionRate: 8,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "24",
-    employeeId: "USR-1024",
-    name: "Dalia Fawzi",
-    email: "dalia.fawzi@next.com",
-    phone: "+971 54 667 8811",
-    role: "Sales Executive",
-    department: "Sales",
-    joiningDate: "29 Jul 2025",
-    salesTarget: 37000,
-    commissionRate: 7,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "25",
-    employeeId: "USR-1025",
-    name: "Youssef Nader",
-    email: "youssef.nader@next.com",
-    phone: "+971 50 112 2334",
-    role: "Marketing Executive",
-    department: "Marketing",
-    joiningDate: "05 Aug 2025",
-    salesTarget: 26000,
-    commissionRate: 6,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "26",
-    employeeId: "USR-1026",
-    name: "Salma Idris",
-    email: "salma.idris@next.com",
-    phone: "+971 55 667 7889",
-    role: "Admin",
-    department: "Operations",
-    joiningDate: "12 Aug 2025",
-    salesTarget: 0,
-    commissionRate: 0,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1534751516642-a171ed292022?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "27",
-    employeeId: "USR-1027",
-    name: "Rami Khoury",
-    email: "rami.khoury@next.com",
-    phone: "+971 52 334 4556",
-    role: "Sales Executive",
-    department: "Sales",
-    joiningDate: "19 Aug 2025",
-    salesTarget: 44000,
-    commissionRate: 8,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "28",
-    employeeId: "USR-1028",
-    name: "Mona Salem",
-    email: "mona.salem@next.com",
-    phone: "+971 56 778 8990",
-    role: "Marketing Executive",
-    department: "Marketing",
-    joiningDate: "27 Aug 2025",
-    salesTarget: 33000,
-    commissionRate: 7,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "29",
-    employeeId: "USR-1029",
-    name: "Mustafa Kamal",
-    email: "mustafa.kamal@next.com",
-    phone: "+971 50 889 9001",
-    role: "Sales Executive",
-    department: "Sales",
-    joiningDate: "03 Sep 2025",
-    salesTarget: 49000,
-    commissionRate: 9,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "30",
-    employeeId: "USR-1030",
-    name: "Hala Ghassan",
-    email: "hala.ghassan@next.com",
-    phone: "+971 55 223 3445",
-    role: "Admin",
-    department: "Administration",
-    joiningDate: "10 Sep 2025",
-    salesTarget: 0,
-    commissionRate: 0,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "31",
-    employeeId: "USR-1031",
-    name: "Zayd Othman",
-    email: "zayd.othman@next.com",
-    phone: "+971 52 445 5667",
-    role: "Sales Executive",
-    department: "Sales",
-    joiningDate: "18 Sep 2025",
-    salesTarget: 43000,
-    commissionRate: 8,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-  {
-    id: "32",
-    employeeId: "USR-1032",
-    name: "Khadija Nour",
-    email: "khadija.nour@next.com",
-    phone: "+971 54 778 8992",
-    role: "Marketing Executive",
-    department: "Marketing",
-    joiningDate: "26 Sep 2025",
-    salesTarget: 30000,
-    commissionRate: 7,
-    status: "Active",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80",
-  },
-];
-
-// ============================================================================
 // MAIN PAGE COMPONENT
 // ============================================================================
 
 export default function UserManagementPage() {
-  const [users, setUsers] = React.useState<ManagedUser[]>(SEED_USERS);
+  const { toast } = useToast();
+  const [users, setUsers] = React.useState<ManagedUser[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [dbStats, setDbStats] = React.useState<{
+    total: number;
+    active: number;
+    inactive: number;
+    newThisMonth: number;
+    departmentCount: number;
+    roleCount: number;
+  } | null>(null);
+
+  // Fetch users and metrics directly from the PostgreSQL Database via API
+  const fetchUsersAndStats = React.useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [usersRes, statsRes] = await Promise.all([
+        apiClient<any[]>("/users?limit=100"),
+        apiClient<any>("/users/stats").catch(() => null),
+      ]);
+
+      if (usersRes?.data && Array.isArray(usersRes.data) && usersRes.data.length > 0) {
+        const mapped: ManagedUser[] = usersRes.data.map((u: any) => {
+          let roleName: UserRole = "Sales Executive";
+          if (u.role === "SUPER_ADMIN") roleName = "Super Admin";
+          else if (u.role === "ADMIN") roleName = "Admin";
+          else if (u.role === "MARKETING_TEAM") roleName = "Marketing Executive";
+          else if (u.role === "SALES_STAFF") roleName = "Sales Executive";
+
+          let deptName: UserDepartment = "Sales";
+          if (u.department?.name) {
+            deptName = u.department.name as UserDepartment;
+          } else if (u.settings?.department) {
+            deptName = u.settings.department as UserDepartment;
+          }
+
+          let statusName: UserStatus = u.status === "ACTIVE" ? "Active" : "Inactive";
+          let dateStr = "10 Jan 2025";
+          if (u.joiningDate) {
+            try {
+              dateStr = new Date(u.joiningDate).toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              });
+            } catch {
+              // keep fallback
+            }
+          }
+
+          const empIndex = parseInt(u.employeeId?.replace(/\D/g, "") || "1", 10) || 1;
+          const defaultPreset = PRESET_AVATARS[(empIndex - 1) % PRESET_AVATARS.length].svg;
+          const avatar =
+            u.settings?.avatar ||
+            u.avatarUrl ||
+            defaultPreset;
+
+          return {
+            id: u.id,
+            employeeId: u.employeeId || `USR-${u.id.slice(0, 4)}`,
+            name: u.name,
+            email: u.email,
+            phone: u.phone || "+971 50 000 0000",
+            role: roleName,
+            department: deptName,
+            joiningDate: dateStr,
+            salesTarget: u.salesTarget || 0,
+            commissionRate: u.commissionPercentage || 0,
+            status: statusName,
+            avatar: avatar,
+          };
+        });
+
+        setUsers(mapped);
+      } else if (usersRes?.data && Array.isArray(usersRes.data)) {
+        setUsers([]);
+      }
+
+      if (statsRes?.data) {
+        setDbStats(statsRes.data);
+      }
+    } catch (err) {
+      console.warn("Failed to load users from DB via API, keeping current state", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    try {
+      localStorage.removeItem("next_crm_managed_users");
+    } catch {
+      // ignore
+    }
+    fetchUsersAndStats();
+  }, [fetchUsersAndStats]);
+
   const [searchQuery, setSearchQuery] = React.useState("");
   const [roleFilter, setRoleFilter] = React.useState<string>("All Roles");
   const [departmentFilter, setDepartmentFilter] = React.useState<string>("All Departments");
@@ -523,22 +165,10 @@ export default function UserManagementPage() {
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = React.useState(false);
-  const [modalMode, setModalMode] = React.useState<"create" | "edit">("create");
   const [editingUser, setEditingUser] = React.useState<ManagedUser | null>(null);
 
   // Delete Confirm State
   const [deleteConfirmUser, setDeleteConfirmUser] = React.useState<ManagedUser | null>(null);
-
-  // Modal Form Inputs
-  const [formName, setFormName] = React.useState("");
-  const [formEmail, setFormEmail] = React.useState("");
-  const [formPhone, setFormPhone] = React.useState("");
-  const [formRole, setFormRole] = React.useState<UserRole>("Sales Executive");
-  const [formDepartment, setFormDepartment] = React.useState<UserDepartment>("Sales");
-  const [formJoiningDate, setFormJoiningDate] = React.useState("01 Oct 2025");
-  const [formSalesTarget, setFormSalesTarget] = React.useState("40000");
-  const [formCommissionRate, setFormCommissionRate] = React.useState("8");
-  const [formStatus, setFormStatus] = React.useState<UserStatus>("Active");
 
   // Handle Filtering
   const filteredUsers = React.useMemo(() => {
@@ -592,98 +222,39 @@ export default function UserManagementPage() {
     );
   };
 
-  // Open Create Modal
-  const openCreateModal = () => {
-    setModalMode("create");
-    setEditingUser(null);
-    setFormName("");
-    setFormEmail("");
-    setFormPhone("+971 50 ");
-    setFormRole("Sales Executive");
-    setFormDepartment("Sales");
-    setFormJoiningDate(new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }));
-    setFormSalesTarget("40000");
-    setFormCommissionRate("8");
-    setFormStatus("Active");
-    setIsModalOpen(true);
-  };
-
   // Open Edit Modal
   const openEditModal = (user: ManagedUser) => {
-    setModalMode("edit");
     setEditingUser(user);
-    setFormName(user.name);
-    setFormEmail(user.email);
-    setFormPhone(user.phone);
-    setFormRole(user.role);
-    setFormDepartment(user.department);
-    setFormJoiningDate(user.joiningDate);
-    setFormSalesTarget(user.salesTarget.toString());
-    setFormCommissionRate(user.commissionRate.toString());
-    setFormStatus(user.status);
     setIsModalOpen(true);
-  };
-
-  // Submit Modal
-  const handleSaveUser = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formName.trim() || !formEmail.trim()) return;
-
-    if (modalMode === "create") {
-      const nextId = (users.length + 1).toString();
-      const nextEmpNum = 1000 + users.length + 1;
-      const newUser: ManagedUser = {
-        id: nextId,
-        employeeId: `USR-${nextEmpNum}`,
-        name: formName.trim(),
-        email: formEmail.trim(),
-        phone: formPhone.trim() || "+971 50 000 0000",
-        role: formRole,
-        department: formDepartment,
-        joiningDate: formJoiningDate,
-        salesTarget: Number(formSalesTarget) || 0,
-        commissionRate: Number(formCommissionRate) || 0,
-        status: formStatus,
-        avatar: `https://images.unsplash.com/photo-${1534528741775 + Number(nextId)}?auto=format&fit=crop&w=120&h=120&q=80`,
-      };
-      setUsers([newUser, ...users]);
-    } else if (editingUser) {
-      setUsers((prev) =>
-        prev.map((u) =>
-          u.id === editingUser.id
-            ? {
-                ...u,
-                name: formName.trim(),
-                email: formEmail.trim(),
-                phone: formPhone.trim(),
-                role: formRole,
-                department: formDepartment,
-                joiningDate: formJoiningDate,
-                salesTarget: Number(formSalesTarget) || 0,
-                commissionRate: Number(formCommissionRate) || 0,
-                status: formStatus,
-              }
-            : u
-        )
-      );
-    }
-    setIsModalOpen(false);
   };
 
   // Delete User
-  const handleDeleteUser = (user: ManagedUser) => {
+  const handleDeleteUser = async (user: ManagedUser) => {
+    try {
+      await apiClient(`/users/${user.id}`, { method: "DELETE" });
+      toast({
+        type: "success",
+        title: "User Deleted",
+        description: `Successfully removed ${user.name} from database.`,
+      });
+      fetchUsersAndStats();
+    } catch (err) {
+      console.warn("Delete API notice:", err);
+    }
+
     setUsers((prev) => prev.filter((u) => u.id !== user.id));
     setSelectedUserIds((prev) => prev.filter((id) => id !== user.id));
     setDeleteConfirmUser(null);
   };
 
-  // Reset Filters
+  // Reset Filters / Refresh from DB
   const handleResetFilters = () => {
     setSearchQuery("");
     setRoleFilter("All Roles");
     setDepartmentFilter("All Departments");
     setStatusFilter("All Status");
     setCurrentPage(1);
+    fetchUsersAndStats();
   };
 
   // Export to CSV
@@ -723,12 +294,15 @@ export default function UserManagementPage() {
     document.body.removeChild(link);
   };
 
-  // Metrics summary matching reference design
-  const totalUsersCount = 32;
-  const activeUsersCount = 28;
-  const inactiveUsersCount = 3;
-  const activePercentage = "87.5";
-  const inactivePercentage = "9.4";
+  // Dynamic metrics from Database Stats
+  const totalUsersCount = dbStats?.total ?? users.length;
+  const activeUsersCount = dbStats?.active ?? users.filter((u) => u.status === "Active").length;
+  const inactiveUsersCount = dbStats?.inactive ?? users.filter((u) => u.status === "Inactive").length;
+  const newUsersThisMonth = dbStats?.newThisMonth ?? 32;
+  const departmentsCount = dbStats?.departmentCount ?? 8;
+  const rolesCount = dbStats?.roleCount ?? 4;
+  const activePercentage = totalUsersCount > 0 ? ((activeUsersCount / totalUsersCount) * 100).toFixed(1) : "0";
+  const inactivePercentage = totalUsersCount > 0 ? ((inactiveUsersCount / totalUsersCount) * 100).toFixed(1) : "0";
 
   return (
     <div className="space-y-4 text-slate-100 font-sans pb-10 select-none">
@@ -753,13 +327,13 @@ export default function UserManagementPage() {
         </div>
 
         {/* Top-Right "+ Create User" Button */}
-        <button
-          onClick={openCreateModal}
+        <Link
+          href="/admin/users/create"
           className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#00c0f0] hover:bg-[#00a6d1] text-white text-xs font-semibold shadow-[0_0_16px_rgba(0,192,240,0.35)] transition-all cursor-pointer self-start sm:self-auto shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>Create User</span>
-        </button>
+        </Link>
       </div>
 
       {/* -------------------------------------------------------------------- */}
@@ -838,10 +412,10 @@ export default function UserManagementPage() {
           </div>
           <div className="mt-2.5">
             <p className="text-2xl font-bold text-white tracking-tight leading-none">
-              5
+              {newUsersThisMonth}
             </p>
             <p className="text-[11px] font-semibold text-emerald-400 mt-1.5">
-              ↑ 25% from last month
+              ↑ Active in CRM
             </p>
           </div>
         </div>
@@ -858,7 +432,7 @@ export default function UserManagementPage() {
           </div>
           <div className="mt-2.5">
             <p className="text-2xl font-bold text-white tracking-tight leading-none">
-              6
+              {departmentsCount}
             </p>
             <p className="text-[11px] text-slate-400 mt-1.5">
               Total Departments
@@ -878,7 +452,7 @@ export default function UserManagementPage() {
           </div>
           <div className="mt-2.5">
             <p className="text-2xl font-bold text-white tracking-tight leading-none">
-              4
+              {rolesCount}
             </p>
             <p className="text-[11px] text-slate-400 mt-1.5">
               System Roles
@@ -1106,7 +680,16 @@ export default function UserManagementPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#131f38]">
-              {paginatedUsers.length === 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={11} className="py-14 text-center">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <div className="w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                      <span className="text-xs text-slate-400">Loading users from database...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : paginatedUsers.length === 0 ? (
                 <tr>
                   <td colSpan={11} className="py-12 text-center text-slate-400">
                     No users match your criteria. Try resetting the filters.
@@ -1148,6 +731,9 @@ export default function UserManagementPage() {
                             <img
                               src={user.avatar}
                               alt={user.name}
+                              onError={(e) => {
+                                e.currentTarget.src = PRESET_AVATARS[0].svg;
+                              }}
                               className="w-full h-full object-cover"
                             />
                           </div>
@@ -1313,186 +899,25 @@ export default function UserManagementPage() {
       </div>
 
       {/* -------------------------------------------------------------------- */}
-      {/* 5. CREATE / EDIT USER MODAL */}
+      {/* 5. EDIT USER MODAL (Rich Midnight-Dark Card Form) */}
       {/* -------------------------------------------------------------------- */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#0b1426] border border-[#162544] rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-slide-up">
-            {/* Modal Header */}
-            <div className="px-5 py-4 border-b border-[#14233f] flex items-center justify-between">
-              <h3 className="text-base font-bold text-white">
-                {modalMode === "create" ? "Create New User" : `Edit User — ${editingUser?.employeeId}`}
-              </h3>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Modal Form */}
-            <form onSubmit={handleSaveUser} className="p-5 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div>
-                  <label className="block text-[11px] font-medium text-slate-300 mb-1">
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formName}
-                    onChange={(e) => setFormName(e.target.value)}
-                    placeholder="e.g. Tariq Mansoor"
-                    className="w-full bg-[#0d182e] border border-[#1a2d52] focus:border-cyan-500 text-xs text-white rounded-xl px-3 py-2 outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-medium text-slate-300 mb-1">
-                    Email Address *
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={formEmail}
-                    onChange={(e) => setFormEmail(e.target.value)}
-                    placeholder="e.g. user@next.com"
-                    className="w-full bg-[#0d182e] border border-[#1a2d52] focus:border-cyan-500 text-xs text-white rounded-xl px-3 py-2 outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-medium text-slate-300 mb-1">
-                    Phone Number
-                  </label>
-                  <input
-                    type="text"
-                    value={formPhone}
-                    onChange={(e) => setFormPhone(e.target.value)}
-                    placeholder="+971 50 123 4567"
-                    className="w-full bg-[#0d182e] border border-[#1a2d52] focus:border-cyan-500 text-xs text-white rounded-xl px-3 py-2 outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-medium text-slate-300 mb-1">
-                    Role
-                  </label>
-                  <select
-                    value={formRole}
-                    onChange={(e) => setFormRole(e.target.value as UserRole)}
-                    className="w-full bg-[#0d182e] border border-[#1a2d52] focus:border-cyan-500 text-xs text-white rounded-xl px-3 py-2 outline-none cursor-pointer"
-                  >
-                    <option value="Admin">Admin</option>
-                    <option value="Sales Executive">Sales Executive</option>
-                    <option value="Marketing Executive">Marketing Executive</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-medium text-slate-300 mb-1">
-                    Department
-                  </label>
-                  <select
-                    value={formDepartment}
-                    onChange={(e) => setFormDepartment(e.target.value as UserDepartment)}
-                    className="w-full bg-[#0d182e] border border-[#1a2d52] focus:border-cyan-500 text-xs text-white rounded-xl px-3 py-2 outline-none cursor-pointer"
-                  >
-                    <option value="Administration">Administration</option>
-                    <option value="Sales">Sales</option>
-                    <option value="Marketing">Marketing</option>
-                    <option value="Operations">Operations</option>
-                    <option value="IT">IT</option>
-                    <option value="Finance">Finance</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-medium text-slate-300 mb-1">
-                    Joining Date
-                  </label>
-                  <input
-                    type="text"
-                    value={formJoiningDate}
-                    onChange={(e) => setFormJoiningDate(e.target.value)}
-                    placeholder="e.g. 15 Oct 2025"
-                    className="w-full bg-[#0d182e] border border-[#1a2d52] focus:border-cyan-500 text-xs text-white rounded-xl px-3 py-2 outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-medium text-slate-300 mb-1">
-                    Sales Target (AED)
-                  </label>
-                  <input
-                    type="number"
-                    value={formSalesTarget}
-                    onChange={(e) => setFormSalesTarget(e.target.value)}
-                    placeholder="40000"
-                    className="w-full bg-[#0d182e] border border-[#1a2d52] focus:border-cyan-500 text-xs text-white rounded-xl px-3 py-2 outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-medium text-slate-300 mb-1">
-                    Commission Rate (%)
-                  </label>
-                  <input
-                    type="number"
-                    value={formCommissionRate}
-                    onChange={(e) => setFormCommissionRate(e.target.value)}
-                    placeholder="8"
-                    className="w-full bg-[#0d182e] border border-[#1a2d52] focus:border-cyan-500 text-xs text-white rounded-xl px-3 py-2 outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-medium text-slate-300 mb-1">
-                  Status
-                </label>
-                <div className="flex items-center gap-4 pt-1">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-200">
-                    <input
-                      type="radio"
-                      name="status"
-                      checked={formStatus === "Active"}
-                      onChange={() => setFormStatus("Active")}
-                      className="text-cyan-500 focus:ring-0"
-                    />
-                    <span>Active</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-200">
-                    <input
-                      type="radio"
-                      name="status"
-                      checked={formStatus === "Inactive"}
-                      onChange={() => setFormStatus("Inactive")}
-                      className="text-rose-500 focus:ring-0"
-                    />
-                    <span>Inactive</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Modal Buttons */}
-              <div className="pt-4 border-t border-[#14233f] flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-700 hover:bg-slate-800 text-xs font-medium text-slate-300 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-xl bg-[#00c0f0] hover:bg-[#00a6d1] text-white text-xs font-semibold shadow-[0_0_12px_rgba(0,192,240,0.4)] transition-all cursor-pointer"
-                >
-                  {modalMode === "create" ? "Save User" : "Update User"}
-                </button>
-              </div>
-            </form>
+      {isModalOpen && editingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/85 backdrop-blur-md animate-fade-in overflow-y-auto">
+          <div className="w-full max-w-5xl my-auto animate-slide-up">
+            <CreateUserFormCard
+              mode="edit"
+              initialUser={editingUser}
+              isModal={true}
+              onClose={() => {
+                setIsModalOpen(false);
+                setEditingUser(null);
+              }}
+              onSuccess={() => {
+                setIsModalOpen(false);
+                setEditingUser(null);
+                fetchUsersAndStats();
+              }}
+            />
           </div>
         </div>
       )}

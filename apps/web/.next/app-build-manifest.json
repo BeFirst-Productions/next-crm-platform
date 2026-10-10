@@ -31,35 +31,20 @@
       "static/chunks/main-app.js",
       "static/chunks/app/(dashboard)/dashboard/page.js"
     ],
-    "/client-portal/company-details/page": [
+    "/(dashboard)/admin/users/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/client-portal/company-details/page.js"
+      "static/chunks/app/(dashboard)/admin/users/page.js"
     ],
-    "/client-portal/packages/page": [
+    "/(dashboard)/admin/users/create/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/client-portal/packages/page.js"
+      "static/chunks/app/(dashboard)/admin/users/create/page.js"
     ],
     "/(auth)/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/(auth)/login/page.js"
-    ],
-    "/(dashboard)/dashboard/leads/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/dashboard/leads/page.js"
-    ],
-    "/(dashboard)/admin/packages/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/admin/packages/page.js"
-    ],
-    "/(dashboard)/admin/packages/manage/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/admin/packages/manage/page.js"
     ]
   }
 }
