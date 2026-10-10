@@ -2,24 +2,43 @@
 
 import * as React from "react";
 import Link from "next/link";
+
 import {
   CheckCircle2,
   ArrowLeft,
   ArrowRight,
   Pencil,
   Check,
-  Download,
-  FileText,
   X,
+  Save,
+  Loader2,
+  AlertCircle,
+  Eye,
+  Download,
 } from "lucide-react";
 import { useProposalStore, ALL_ADDONS } from "@/stores";
+import { ProposalDeckView, ProposalDeckData } from "@/components/proposal/ProposalDeckView";
+import {
+  fetchPackages,
+  fetchAddons,
+  fetchCategories,
+  saveClientProposal,
+  type PackageItem,
+
+  type AddonItem,
+  type ServiceCategory,
+  type SavedProposalResult,
+  type SaveClientProposalPayload,
+} from "@/lib/catalog-api";
 
 // Map package tiers to their display name, price, and deliverable features
 interface PackageMeta {
+  id?: string;
   name: string;
   price: number;
   features: string[];
 }
+
 
 const PACKAGE_METADATA: Record<string, PackageMeta> = {
   // Web Packages
@@ -128,35 +147,51 @@ const PACKAGE_METADATA: Record<string, PackageMeta> = {
   // SEO Packages
   "local-seo": {
     name: "LOCAL SEO",
-    price: 1800,
+    price: 799,
     features: [
-      "Google Business Profile Optimization",
-      "Local Citation Building",
-      "15 Target Keywords",
-      "Review Management Strategy",
-      "Monthly Local Search Report",
+      "Google Business Profile Optimisation",
+      "Local Keyword Research",
+      "On-Page SEO",
+      "Basic Technical SEO",
+      "Local Citation Strategy",
+      "Google Maps Optimisation",
+      "Monthly Ranking Monitoring",
+      "Monthly Report",
     ],
   },
   "growth-seo": {
     name: "GROWTH SEO",
-    price: 3200,
+    price: 1499,
     features: [
-      "Comprehensive On-Page SEO",
-      "Technical Audit & Fixes",
-      "35 Target Keywords",
-      "High Authority Backlinks",
-      "Monthly Traffic Analysis",
+      "Everything in LOCAL SEO",
+      "Advanced Keyword Research",
+      "Technical SEO",
+      "On-Page Optimisation",
+      "Content Optimisation",
+      "Internal Linking",
+      "Competitor SEO Analysis",
+      "Local SEO",
+      "Google Business Profile Management",
+      "Monthly SEO Strategy",
+      "Ranking Monitoring",
+      "Monthly SEO Report",
     ],
   },
   "authority-seo": {
     name: "AUTHORITY SEO",
-    price: 5500,
+    price: 2499,
     features: [
-      "Full Website SEO Architecture",
-      "Enterprise Keyword Strategy",
-      "Premium Editorial Link Building",
+      "Everything in GROWTH SEO",
+      "Advanced Technical SEO",
+      "High-value Keyword Strategy",
+      "Content Strategy",
       "Competitor Gap Analysis",
-      "Dedicated SEO Strategist",
+      "Backlink Strategy",
+      "Advanced Local SEO",
+      "Conversion-Focused SEO",
+      "Schema Optimisation",
+      "Monthly SEO Consultation",
+      "Detailed SEO Dashboard",
     ],
   },
 
@@ -165,33 +200,47 @@ const PACKAGE_METADATA: Record<string, PackageMeta> = {
     name: "BRAND STARTER",
     price: 999,
     features: [
+      "Logo Design",
       "2 Logo Concepts",
-      "Color Palette & Typography",
+      "Colour Palette",
+      "Typography Selection",
       "Business Card Design",
-      "Social Media Profile Assets",
-      "Basic Brand Guidelines",
+      "Social Media Profile Setup",
+      "Basic Brand Guide",
     ],
   },
   "business-identity": {
     name: "BUSINESS IDENTITY",
     price: 1999,
     features: [
-      "3 Custom Logo Concepts",
-      "Comprehensive Brand Guidelines",
-      "Stationery & Email Signatures",
+      "Everything in BRAND STARTER",
+      "4 Logo Concepts",
+      "Logo Variations",
+      "Complete Colour System",
+      "Typography System",
+      "Business Card",
+      "Letterhead",
+      "Email Signature",
       "Social Media Templates",
-      "Brand Iconography Kit",
+      "Brand Guidelines",
+      "Brand Presentation",
     ],
   },
   "complete-brand": {
     name: "COMPLETE BRAND",
     price: 3499,
     features: [
-      "Full Visual Identity System",
-      "Marketing Collateral Suite",
-      "Presentation Deck Templates",
-      "Packaging / Merch Guidelines",
-      "Dedicated Creative Director",
+      "Everything in BUSINESS IDENTITY",
+      "Advanced Logo System",
+      "Brand Guidelines",
+      "Stationery Package",
+      "Social Media Brand Kit",
+      "Marketing Templates",
+      "Presentation Template",
+      "Corporate Profile Design",
+      "Advertisement Templates",
+      "Brand Application Examples",
+      "Complete Brand Assets Package",
     ],
   },
   "content-starter": {
@@ -199,10 +248,11 @@ const PACKAGE_METADATA: Record<string, PackageMeta> = {
     price: 799,
     features: [
       "1 Content Shoot",
-      "4 Reels / Short Videos",
+      "4 Reels",
       "10 Edited Photos",
       "Basic Video Editing",
-      "Social Formats Delivery",
+      "Social Media Formats",
+      "Basic Creative Direction",
     ],
   },
   "content-growth": {
@@ -210,65 +260,148 @@ const PACKAGE_METADATA: Record<string, PackageMeta> = {
     price: 1499,
     features: [
       "2 Content Shoots",
-      "8 Reels / Short Videos",
+      "8 Reels",
       "20 Edited Photos",
-      "Creative Direction & Scripting",
-      "Motion Graphics & Captions",
+      "Creative Direction",
+      "Script / Concept Planning",
+      "Professional Editing",
+      "Motion Graphics",
+      "Social Media Formats",
+      "Content Calendar",
     ],
   },
   "content-pro": {
     name: "CONTENT PRO",
-    price: 2999,
+    price: 2499,
     features: [
       "4 Content Shoots",
-      "16 Reels / Short Videos",
-      "40 Edited High-Res Photos",
-      "Drone Footage Included",
-      "Advanced Color Grading & Sound",
+      "12 Reels",
+      "40 Edited Photos",
+      "Advanced Video Production",
+      "Creative Direction",
+      "Script Development",
+      "Motion Graphics",
+      "Product / Brand Videos",
+      "Professional Editing",
+      "Content Strategy",
+      "Multiple Social Formats",
     ],
   },
   "lead-starter": {
     name: "LEAD STARTER",
-    price: 1299,
+    price: 1499,
     features: [
-      "1 Targeted Lead Campaign",
-      "Custom Landing Page Setup",
-      "Ad Copy & Creative Design",
-      "CRM Lead Notification",
-      "Monthly Lead Report",
+      "Meta Ads Management",
+      "1 Lead Generation Campaign",
+      "Audience Targeting",
+      "Ad Creative Strategy",
+      "Lead Form Setup",
+      "WhatsApp Integration",
+      "Basic Conversion Tracking",
+      "Monthly Optimisation",
+      "Lead Report",
     ],
   },
   "lead-growth": {
     name: "LEAD GROWTH",
     price: 2499,
     features: [
-      "2 Cross-Platform Ad Campaigns",
-      "Conversion Funnel Architecture",
-      "Custom Landing Pages & Retargeting",
-      "WhatsApp Automated Flow",
-      "Bi-Weekly Lead Strategy",
+      "Everything in LEAD STARTER",
+      "Meta Ads",
+      "Google Ads",
+      "Multiple Campaigns",
+      "Retargeting",
+      "Landing Page Strategy",
+      "Lead Form Optimisation",
+      "WhatsApp Lead Flow",
+      "Conversion Tracking",
+      "A/B Testing",
+      "Campaign Optimisation",
+      "Detailed Lead Report",
     ],
   },
   "lead-scale": {
     name: "LEAD SCALE",
-    price: 4999,
+    price: 3999,
     features: [
-      "Multi-Channel Enterprise Funnels",
-      "Dedicated Media Buyer & Copywriter",
+      "Everything in LEAD GROWTH",
+      "Advanced Meta Campaigns",
+      "Advanced Google Campaigns",
+      "Multiple Funnels",
+      "Retargeting & Remarketing",
+      "Landing Page Optimisation",
+      "Conversion Rate Optimisation",
       "Advanced Audience Segmentation",
-      "Continuous A/B Split Testing",
-      "Weekly Conversion Optimization",
+      "Lead Quality Tracking",
+      "Campaign A/B Testing",
+      "Advanced Analytics",
+      "Weekly Optimisation",
+      "Strategy Consultation",
     ],
   },
   "growth-360": {
     name: "GROWTH 360",
-    price: 8500,
+    price: 4999,
     features: [
-      "Full 360 Digital Marketing Suite",
-      "Social Media + Video Production",
-      "Meta & Google Ads Management",
-      "SEO Architecture & Rank Tracking",
-      "Dedicated Fractional CMO",
+      "Digital Marketing",
+      "Social Media Management",
+      "16 Premium Creatives",
+      "12 Reels",
+      "Meta Ads Management",
+      "Google Ads Management",
+      "Lead Generation",
+      "SEO Management",
+      "Google Business Profile",
+      "Content Strategy",
+      "Competitor Analysis",
+      "Monthly Marketing Strategy",
+      "Conversion Strategy",
+      "Monthly Performance Report",
+      "Dedicated Account Manager",
+      "Monthly Strategy Meeting",
+    ],
+  },
+
+  // Video Production Packages
+  "video-starter": {
+    name: "REELS & SHORTS STARTER",
+    price: 999,
+    features: [
+      "1 On-location Shoot Day",
+      "6 Edited Reels / TikTok Videos",
+      "Concept & Script Ideation",
+      "Sound Design & Viral Audio",
+      "Dynamic Captions & Subtitles",
+      "1080p / 4K UHD Output",
+      "1 Round of Revisions per Reel",
+    ],
+  },
+  "video-growth": {
+    name: "COMMERCIAL & BRAND GROWTH",
+    price: 2499,
+    features: [
+      "2 On-location Shoot Days",
+      "12 Edited Reels / Short Videos",
+      "1 High-End Brand Promo (60s)",
+      "Professional Lighting & Audio Rig",
+      "Creative Director & Scriptwriter",
+      "Drone Aerial Footage Included",
+      "Color Grading & Sound Mastering",
+      "Thumbnail & Cover Designs",
+    ],
+  },
+  "video-pro": {
+    name: "CINEMATIC ENTERPRISE SUITE",
+    price: 4999,
+    features: [
+      "Full Production Crew & Dedicated DP",
+      "20 Edited Reels / Short Videos",
+      "2 Full Brand Films / TV Commercials",
+      "Voiceover Recording & Licensing",
+      "Cinema Camera 6K RAW Capture",
+      "2D Motion Graphics & Animation",
+      "Dedicated Video Editor & Colorist",
+      "Multi-platform Formats (16:9, 9:16, 1:1)",
     ],
   },
 };
@@ -283,13 +416,37 @@ export default function ClientPortalReviewPage() {
     toggleDarkMode,
     isSubmitting,
     setIsSubmitting,
+    setIsSaved,
   } = useProposalStore();
 
   const [isSuccessModalOpen, setIsSuccessModalOpen] = React.useState(false);
 
+  // Backend packages & addons integration
+  const [dbPackages, setDbPackages] = React.useState<PackageItem[]>([]);
+  const [dbAddons, setDbAddons] = React.useState<AddonItem[]>([]);
+  const [dbCategories, setDbCategories] = React.useState<ServiceCategory[]>([]);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    Promise.all([
+      fetchPackages().catch(() => []),
+      fetchAddons().catch(() => []),
+      fetchCategories().catch(() => []),
+    ]).then(([pkgs, addons, cats]) => {
+      if (isMounted) {
+        if (pkgs && pkgs.length > 0) setDbPackages(pkgs);
+        if (addons && addons.length > 0) setDbAddons(addons);
+        if (cats && cats.length > 0) setDbCategories(cats);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // Format delivery date
   const formattedDeliveryDate = React.useMemo(() => {
-    if (!companyDetails.expectedDeliveryDate) return "15 Jan 2025";
+    if (!companyDetails.expectedDeliveryDate) return undefined;
     try {
       const date = new Date(companyDetails.expectedDeliveryDate);
       return date.toLocaleDateString("en-GB", {
@@ -302,8 +459,144 @@ export default function ClientPortalReviewPage() {
     }
   }, [companyDetails.expectedDeliveryDate]);
 
-  // Selected package details
+  // Active category derived directly from proposalStore packageSelection.category
+  const activeCategory = React.useMemo(() => {
+    const storeCat = packageSelection.category;
+
+    if (storeCat) {
+      const directMatch = dbCategories.find((c) => c.id === storeCat);
+      if (directMatch) return directMatch;
+
+      const nameMatch = dbCategories.find(
+        (c) => c.name.toLowerCase() === storeCat.toLowerCase()
+      );
+      if (nameMatch) return nameMatch;
+
+      const slug = storeCat.toLowerCase();
+      const slugMatch = dbCategories.find((c) => {
+        const cn = c.name.toLowerCase();
+        if ((slug === "web" || slug === "website") && (cn.includes("web") || cn.includes("site"))) return true;
+        if (slug === "seo" && (cn.includes("seo") || cn.includes("geo"))) return true;
+        if (slug === "social" && (cn.includes("social") || cn.includes("brand"))) return true;
+        if (slug === "ecommerce" && (cn.includes("commerce") || cn.includes("mini") || cn.includes("shop"))) return true;
+        if (slug === "marketing" && (cn.includes("market") || cn.includes("digital"))) return true;
+        if (slug === "video" && (cn.includes("video") || cn.includes("film") || cn.includes("reel"))) return true;
+        return false;
+      });
+      if (slugMatch) return slugMatch;
+    }
+
+    const targetKey = (
+      packageSelection.ecommerce ||
+      packageSelection.tier ||
+      "professional"
+    ).toLowerCase();
+
+    if (targetKey.includes("seo")) {
+      const seo = dbCategories.find((c) => c.name.toLowerCase().includes("seo"));
+      if (seo) return seo;
+    }
+    if (
+      targetKey.includes("video") ||
+      targetKey.includes("reel") ||
+      targetKey.includes("cinematic") ||
+      targetKey.includes("short")
+    ) {
+      const vid = dbCategories.find((c) => c.name.toLowerCase().includes("video"));
+      if (vid) return vid;
+    }
+    if (
+      targetKey.includes("brand") ||
+      targetKey.includes("content") ||
+      targetKey.includes("lead")
+    ) {
+      const sm = dbCategories.find(
+        (c) =>
+          c.name.toLowerCase().includes("social") ||
+          c.name.toLowerCase().includes("brand")
+      );
+      if (sm) return sm;
+    }
+    if (
+      targetKey.includes("market") ||
+      targetKey.includes("growth") ||
+      targetKey.includes("scale")
+    ) {
+      const dm = dbCategories.find((c) => c.name.toLowerCase().includes("market"));
+      if (dm) return dm;
+    }
+    if (targetKey.includes("ecom") || targetKey.includes("mini")) {
+      const ecom = dbCategories.find(
+        (c) =>
+          c.name.toLowerCase().includes("e-com") ||
+          c.name.toLowerCase().includes("mini")
+      );
+      if (ecom) return ecom;
+    }
+
+    const web = dbCategories.find((c) => c.name.toLowerCase().includes("web"));
+    if (web) return web;
+
+    return dbCategories[0] || null;
+  }, [packageSelection, dbCategories]);
+
+  // Selected package details dynamically resolved from DB matching active category
   const packageInfo = React.useMemo(() => {
+    const targetKey = (
+      packageSelection.ecommerce ||
+      packageSelection.tier ||
+      "professional"
+    ).toLowerCase();
+
+    const activeCatId = activeCategory?.id;
+    const activeCatName = activeCategory?.name?.toLowerCase() || "";
+
+    const categoryPackages = dbPackages.filter((p) => {
+      if (activeCatId && (p.categoryId === activeCatId || p.category?.id === activeCatId)) return true;
+      if (activeCatName && p.category?.name) {
+        const pCatName = p.category.name.toLowerCase();
+        if (pCatName === activeCatName) return true;
+        if (activeCatName.includes("web") && pCatName.includes("web")) return true;
+        if (activeCatName.includes("seo") && pCatName.includes("seo")) return true;
+        if (activeCatName.includes("social") && pCatName.includes("social")) return true;
+        if (activeCatName.includes("market") && pCatName.includes("market")) return true;
+        if (activeCatName.includes("video") && pCatName.includes("video")) return true;
+      }
+      return false;
+    });
+
+    const pool = categoryPackages.length > 0 ? categoryPackages : dbPackages;
+
+    if (pool.length > 0) {
+      const match =
+        pool.find((p) => {
+          const id = p.id.toLowerCase();
+          const name = p.name.toLowerCase();
+          return id === targetKey || id === `pkg-${targetKey}` || name === targetKey;
+        }) ||
+        pool.find((p) => {
+          const id = p.id.toLowerCase();
+          const name = p.name.toLowerCase();
+          const parts = id.replace("pkg-", "").split("-");
+          return parts.includes(targetKey) || id.endsWith(`-${targetKey}`) || name.includes(targetKey);
+        }) ||
+        pool.find((p) => p.id.toLowerCase().includes(targetKey));
+
+      if (match) {
+        const feats =
+          match.features && match.features.length > 0
+            ? match.features.filter((f) => f.included).map((f) => f.featureName)
+            : PACKAGE_METADATA[targetKey]?.features || [];
+
+        return {
+          id: match.id,
+          name: match.name,
+          price: Number(match.price) || 0,
+          features: feats,
+        };
+      }
+    }
+
     if (packageSelection.ecommerce && PACKAGE_METADATA[packageSelection.ecommerce]) {
       return PACKAGE_METADATA[packageSelection.ecommerce];
     }
@@ -311,31 +604,164 @@ export default function ClientPortalReviewPage() {
       return PACKAGE_METADATA[packageSelection.tier];
     }
     return PACKAGE_METADATA.professional;
-  }, [packageSelection]);
+  }, [packageSelection, dbPackages, activeCategory]);
 
-  // Selected Add-ons list
+  // Selected Add-ons list dynamically resolved from DB (matching active package category)
   const selectedAddonsList = React.useMemo(() => {
-    return ALL_ADDONS.filter((addon) => selectedAddonIds.includes(addon.id));
-  }, [selectedAddonIds]);
+    // Legacy mock add-on IDs that should never be shown unless explicitly supported
+    const legacyMockAddonIds = new Set([
+      "regular-content",
+      "social-video",
+      "photo-shoot",
+      "technical-consultation",
+      "photography",
+      "social-posts",
+      "drone-shoot",
+      "extra-videos",
+    ]);
+
+    const activeCatId = activeCategory?.id;
+
+    return selectedAddonIds
+      .filter((id) => !legacyMockAddonIds.has(id))
+      .map((id) => {
+        const dbMatch = dbAddons.find((a) => a.id === id);
+        if (dbMatch) {
+          if (activeCatId && dbMatch.categoryId && dbMatch.categoryId !== activeCatId) {
+            return null;
+          }
+          return {
+            id: dbMatch.id,
+            name: dbMatch.name,
+            price: Number(dbMatch.price) || 0,
+          };
+        }
+        const staticMatch = ALL_ADDONS.find((a) => a.id === id);
+        if (staticMatch) {
+          return {
+            id: staticMatch.id,
+            name: staticMatch.name,
+            price: staticMatch.price,
+          };
+        }
+        return null;
+      })
+      .filter(Boolean) as { id: string; name: string; price: number }[];
+  }, [selectedAddonIds, dbAddons, activeCategory]);
 
   // Pricing calculations
   const packagePrice = packageInfo.price;
   const addonsTotal = React.useMemo(() => {
     return selectedAddonsList.reduce((sum, item) => sum + item.price, 0);
-  }, [selectedAddonIds]);
+  }, [selectedAddonsList]);
 
   const subTotal = packagePrice + addonsTotal;
   const vatAmount = subTotal * 0.05;
   const grandTotal = subTotal + vatAmount;
 
-  // Handle final proposal generation
-  const handleGenerateProposal = () => {
+  const [savedProposal, setSavedProposal] = React.useState<SavedProposalResult | null>(null);
+  const [saveSuccessNotice, setSaveSuccessNotice] = React.useState<string | null>(null);
+  const [saveError, setSaveError] = React.useState<string | null>(null);
+  const [isPreviewDeckOpen, setIsPreviewDeckOpen] = React.useState(false);
+
+  const proposalDeckData: ProposalDeckData = React.useMemo(() => ({
+    clientName: companyDetails.contactPerson || "Client",
+    companyName: companyDetails.companyName || "Client Company",
+    email: companyDetails.emailAddress || "info@client.com",
+    phone: companyDetails.contactNumber || "—",
+    location: companyDetails.location || "UAE",
+    industry: companyDetails.industry || "General",
+    packageName: packageInfo.name,
+    packagePrice: packagePrice,
+    packageFeatures: packageInfo.features,
+    selectedAddons: selectedAddonsList,
+    subTotal,
+    vatAmount,
+    grandTotal,
+    proposalNumber: savedProposal?.proposalNumber || "PROP-2026-0001",
+    proposalDate: new Date().toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }),
+    expectedDeliveryDate: formattedDeliveryDate || undefined,
+    projectDescription: companyDetails.projectDescription,
+    additionalNotes: companyDetails.additionalNotes,
+    serviceCategory: activeCategory?.name || packageSelection.category || "Website Development",
+  }), [
+    companyDetails,
+    packageInfo,
+    packagePrice,
+    selectedAddonsList,
+    subTotal,
+    vatAmount,
+    grandTotal,
+    savedProposal,
+    formattedDeliveryDate,
+    activeCategory,
+    packageSelection.category,
+  ]);
+
+
+  // Handle saving proposal to database (DRAFT or SUBMITTED)
+  const handleSaveProposal = async (status: "DRAFT" | "SUBMITTED" = "DRAFT") => {
     setIsSubmitting(true);
-    setTimeout(() => {
+    setSaveError(null);
+    setSaveSuccessNotice(null);
+
+    try {
+      const payload: SaveClientProposalPayload = {
+        companyDetails: {
+          companyName: companyDetails.companyName || "Client Proposal Prospect",
+          contactPerson: companyDetails.contactPerson || "Lead Contact",
+          emailAddress: companyDetails.emailAddress || undefined,
+          contactNumber: companyDetails.contactNumber || undefined,
+          location: companyDetails.location || undefined,
+          industry: companyDetails.industry || undefined,
+          requiredServices: companyDetails.requiredServices || undefined,
+          expectedDeliveryDate: companyDetails.expectedDeliveryDate || undefined,
+          projectDescription: companyDetails.projectDescription || undefined,
+          additionalNotes: companyDetails.additionalNotes || undefined,
+        },
+        packageSelection: {
+          category: packageSelection.category,
+          tier: packageSelection.tier,
+          ecommerce: packageSelection.ecommerce,
+        },
+        packageId: packageInfo.id,
+        packageName: packageInfo.name,
+        packagePrice: packageInfo.price,
+        selectedAddons: selectedAddonsList.map((a) => ({
+          id: a.id,
+          name: a.name,
+          price: a.price,
+        })),
+        subTotal,
+        vatAmount,
+        grandTotal,
+        status,
+        notes: companyDetails.additionalNotes || undefined,
+      };
+
+      const result = await saveClientProposal(payload);
+      setSavedProposal(result);
+      setIsSaved(true);
+
+      if (status === "SUBMITTED") {
+        setIsSuccessModalOpen(true);
+      } else {
+        setSaveSuccessNotice(
+          `Proposal saved successfully to the database! Proposal Number: #${result.proposalNumber}`
+        );
+      }
+    } catch (err: any) {
+      console.error("Failed to save proposal:", err);
+      setSaveError(err.message || "Failed to save proposal to the database. Please try again.");
+    } finally {
       setIsSubmitting(false);
-      setIsSuccessModalOpen(true);
-    }, 500);
+    }
   };
+
 
   return (
     <div className="min-h-screen bg-[#050b14] text-slate-100 flex flex-col font-sans select-none antialiased">
@@ -417,14 +843,27 @@ export default function ClientPortalReviewPage() {
         {/* Main Card Container */}
         <div className="bg-[#081220] border border-[#142642] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
           {/* Header Title & Subtitle */}
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Enhance Your Package
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1">
-              Review all prospect, package and add-on details before final submission.
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                Enhance Your Package
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                Review all prospect, package and add-on details before final submission.
+              </p>
+            </div>
+
+            {/* Action button: View Full 24-Page Official Proposal Deck */}
+            <button
+              type="button"
+              onClick={() => setIsPreviewDeckOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-sky-400/60 bg-sky-950/40 hover:bg-sky-900/60 text-sky-300 hover:text-white font-bold text-xs shadow-lg transition-all cursor-pointer"
+            >
+              <Eye className="w-4 h-4 text-sky-400" />
+              <span>Preview Official Proposal Deck (24 Pages)</span>
+            </button>
           </div>
+
 
           {/* ================================================================ */}
           {/* 3 CARDS: CLIENT DETAILS, SELECTED PACKAGE (HERO), ORDER SUMMARY    */}
@@ -583,51 +1022,60 @@ export default function ClientPortalReviewPage() {
                   ORDER SUMMARY
                 </h3>
 
-                {/* Package Line */}
-                <div className="space-y-1 text-xs mb-3">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                    PACKAGE
-                  </span>
-                  <div className="flex justify-between items-center text-slate-200">
-                    <span className="font-bold">{packageInfo.name}</span>
-                    <span className="font-mono font-bold text-white">
-                      AED {packagePrice.toLocaleString()}
+                {/* Items Breakdown */}
+                <div className="space-y-3.5 text-xs">
+                  {/* Selected Package */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      PACKAGE
                     </span>
-                  </div>
-                </div>
-
-                <div className="border-t border-[#14233c] my-3" />
-
-                {/* Breakdown List */}
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between items-center text-slate-400">
-                    <span>Package Base:</span>
-                    <span className="font-mono text-slate-200">
-                      AED {packagePrice.toLocaleString()}
-                    </span>
-                  </div>
-
-                  {selectedAddonsList.map((addon) => (
-                    <div
-                      key={addon.id}
-                      className="flex justify-between items-center text-slate-400"
-                    >
-                      <span className="truncate pr-2">{addon.name}:</span>
-                      <span className="font-mono text-slate-200 shrink-0">
-                        AED {addon.price.toLocaleString()}
+                    <div className="flex justify-between items-center text-slate-200">
+                      <span className="font-bold text-white uppercase">{packageInfo.name}</span>
+                      <span className="font-mono font-bold text-white">
+                        AED {packagePrice.toLocaleString()}
                       </span>
                     </div>
-                  ))}
+                  </div>
+
+                  <div className="border-t border-[#14233c]" />
+
+                  {/* Selected Add-ons (only show if any selected) */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        ADD-ONS {selectedAddonsList.length > 0 ? `(${selectedAddonsList.length})` : ""}
+                      </span>
+                      {selectedAddonsList.length === 0 && (
+                        <span className="text-[11px] text-slate-500 italic">None selected</span>
+                      )}
+                    </div>
+
+                    {selectedAddonsList.length > 0 ? (
+                      <div className="space-y-2 pt-0.5">
+                        {selectedAddonsList.map((addon) => (
+                          <div
+                            key={addon.id}
+                            className="flex justify-between items-center text-slate-300"
+                          >
+                            <span className="truncate pr-2 font-medium">{addon.name}</span>
+                            <span className="font-mono text-slate-200 shrink-0">
+                              AED {addon.price.toLocaleString()}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
 
-                <div className="border-t border-[#14233c] my-3" />
+                <div className="border-t border-[#14233c] my-3.5" />
 
                 {/* Sub Total & VAT */}
                 <div className="space-y-1.5 text-xs">
                   <div className="flex justify-between items-center text-slate-400">
                     <span>Sub Total:</span>
                     <span className="font-mono text-slate-200">
-                      AED {subTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      AED {subTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-slate-400">
@@ -638,7 +1086,7 @@ export default function ClientPortalReviewPage() {
                   </div>
                 </div>
 
-                <div className="border-t border-[#14233c] my-3" />
+                <div className="border-t border-[#14233c] my-3.5" />
 
                 {/* Grand Total */}
                 <div className="space-y-1">
@@ -663,30 +1111,81 @@ export default function ClientPortalReviewPage() {
           </div>
 
           {/* ================================================================ */}
+          {/* FEEDBACK NOTICES (SUCCESS OR ERROR)                              */}
+          {/* ================================================================ */}
+          {saveSuccessNotice && (
+            <div className="p-4 rounded-2xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-200 text-xs flex items-center justify-between shadow-lg animate-in fade-in duration-200">
+              <div className="flex items-center gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span className="font-semibold text-emerald-200">{saveSuccessNotice}</span>
+              </div>
+              <button
+                onClick={() => setSaveSuccessNotice(null)}
+                className="text-emerald-400 hover:text-white p-1 rounded-full hover:bg-emerald-900/50 transition cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          {saveError && (
+            <div className="p-4 rounded-2xl bg-rose-950/60 border border-rose-500/40 text-rose-200 text-xs flex items-center justify-between shadow-lg animate-in fade-in duration-200">
+              <div className="flex items-center gap-2.5">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span className="font-semibold text-rose-200">{saveError}</span>
+              </div>
+              <button
+                onClick={() => setSaveError(null)}
+                className="text-rose-400 hover:text-white p-1 rounded-full hover:bg-rose-900/50 transition cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* ================================================================ */}
           {/* BOTTOM ACTIONS BAR                                               */}
           {/* ================================================================ */}
-          <div className="pt-4 flex items-center justify-between border-t border-[#14233e]">
+          <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[#14233e]">
             {/* Back Button */}
             <Link
               href="/client-portal/add-ons"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-[#182f54] hover:border-slate-500 bg-[#0a1628] hover:bg-[#0d1c33] text-slate-300 hover:text-white text-xs font-semibold transition-all cursor-pointer"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-[#182f54] hover:border-slate-500 bg-[#0a1628] hover:bg-[#0d1c33] text-slate-300 hover:text-white text-xs font-semibold transition-all cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back</span>
             </Link>
 
-            {/* Generate Proposal / Submit Button */}
-            <button
-              type="button"
-              onClick={handleGenerateProposal}
-              disabled={isSubmitting}
-              className="inline-flex items-center gap-2 px-7 py-3 rounded-xl bg-[#00a3ff] hover:bg-[#0092e0] active:bg-[#0080e0] text-white font-bold text-xs sm:text-sm shadow-lg shadow-sky-500/25 transition-all cursor-pointer disabled:opacity-50"
-            >
-              <span>
-                {isSubmitting ? "Generating Proposal..." : "Send For Proposal"}
-              </span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            {/* Actions: Save Proposal & Send For Proposal */}
+            <div className="w-full sm:w-auto flex flex-col sm:flex-row items-center justify-end gap-3">
+              {/* Save Proposal Button (Stores in DB as DRAFT) */}
+              <button
+                type="button"
+                onClick={() => handleSaveProposal("DRAFT")}
+                disabled={isSubmitting}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-[#00a3ff]/40 hover:border-[#00a3ff] bg-sky-950/40 hover:bg-sky-900/60 text-[#00a3ff] hover:text-white font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer disabled:opacity-50"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-[#00a3ff]" />
+                ) : (
+                  <Save className="w-4 h-4 text-[#00a3ff]" />
+                )}
+                <span>Save Proposal</span>
+              </button>
+
+              {/* Send For Proposal Button (Stores in DB as SUBMITTED & Opens Modal) */}
+              <button
+                type="button"
+                onClick={() => handleSaveProposal("SUBMITTED")}
+                disabled={isSubmitting}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3 rounded-xl bg-[#00a3ff] hover:bg-[#0092e0] active:bg-[#0080e0] text-white font-bold text-xs sm:text-sm shadow-lg shadow-sky-500/25 transition-all cursor-pointer disabled:opacity-50"
+              >
+                <span>
+                  {isSubmitting ? "Saving..." : "Send For Proposal"}
+                </span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -712,22 +1211,38 @@ export default function ClientPortalReviewPage() {
             {/* Modal Heading */}
             <div className="space-y-2">
               <h3 className="text-2xl font-black text-white">
-                Proposal Generated Successfully!
+                Proposal Saved & Generated Successfully!
               </h3>
               <p className="text-xs sm:text-sm text-slate-300">
                 The proposal for{" "}
                 <span className="text-sky-400 font-bold">
                   {companyDetails.companyName || "Acme International Ltd"}
                 </span>{" "}
-                has been generated and compiled into official proposal format.
+                has been stored in the database and compiled into official proposal format.
               </p>
             </div>
 
             {/* Proposal Details Box */}
-            <div className="bg-[#091527] border border-[#172b4c] rounded-2xl p-4 text-left space-y-2 text-xs">
+            <div className="bg-[#091527] border border-[#172b4c] rounded-2xl p-4 text-left space-y-2.5 text-xs">
               <div className="flex justify-between">
                 <span className="text-slate-400">Proposal ID:</span>
-                <span className="font-mono text-cyan-400 font-bold">#PROP-2026-9842</span>
+                <span className="font-mono text-cyan-400 font-bold">
+                  #{savedProposal?.proposalNumber || "PROP-2026-0001"}
+                </span>
+              </div>
+              {savedProposal?.lead?.customLeadId && (
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Lead ID:</span>
+                  <span className="font-mono text-emerald-400 font-bold">
+                    #{savedProposal.lead.customLeadId}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-slate-400">Status:</span>
+                <span className="font-semibold text-sky-400">
+                  {savedProposal?.status || "SUBMITTED"}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Selected Tier:</span>
@@ -745,26 +1260,35 @@ export default function ClientPortalReviewPage() {
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <button
                 type="button"
-                onClick={() => {
-                  window.print();
-                }}
+                onClick={() => setIsPreviewDeckOpen(true)}
                 className="flex-1 py-3 px-4 rounded-xl bg-[#00a3ff] hover:bg-[#0092e0] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-sky-500/25 transition cursor-pointer"
               >
-                <Download className="w-4 h-4" />
-                <span>Download / Print PDF</span>
+                <Eye className="w-4 h-4" />
+                <span>Preview Proposal Deck</span>
               </button>
 
               <Link
-                href="/dashboard/leads"
-                className="flex-1 py-3 px-4 rounded-xl border border-slate-700 hover:border-slate-600 bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-2 transition"
+                href="/client-portal/proposal"
+                target="_blank"
+                className="flex-1 py-3 px-4 rounded-xl border border-sky-500/40 hover:border-sky-400 bg-sky-950/40 hover:bg-sky-900/60 text-sky-300 font-bold text-xs flex items-center justify-center gap-2 transition"
               >
-                <FileText className="w-4 h-4" />
-                <span>Back to Leads</span>
+                <Download className="w-4 h-4" />
+                <span>Download / Print</span>
               </Link>
             </div>
           </div>
         </div>
       )}
+
+      {/* 24-Page Official Proposal Deck Interactive Modal */}
+      {isPreviewDeckOpen && (
+        <ProposalDeckView
+          data={proposalDeckData}
+          onClose={() => setIsPreviewDeckOpen(false)}
+        />
+      )}
     </div>
   );
 }
+
+

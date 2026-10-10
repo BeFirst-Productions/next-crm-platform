@@ -26,6 +26,7 @@ import {
   Sparkles,
   Share2,
 } from "lucide-react";
+import { fetchPackages, type PackageItem } from "@/lib/catalog-api";
 
 // ============================================================================
 // DATA MODELS FOR THE PACKAGE COMPARISON MATRIX
@@ -40,7 +41,7 @@ interface PackageTier {
   isPopular?: boolean;
 }
 
-const PACKAGE_TIERS: PackageTier[] = [
+const DEFAULT_PACKAGE_TIERS: PackageTier[] = [
   {
     id: "basic",
     name: "BASIC",
@@ -88,7 +89,71 @@ interface FeatureRow {
   premium: string | boolean;
 }
 
-const FEATURE_MATRIX: FeatureRow[] = [
+// User-specified static frontend fields:
+// - Best for, pages (in PackageTier)
+// - custom ui/ux, seo, speed otimization, Booking system, multi langauge, support, company mail
+const STATIC_FEATURE_VALUES: Record<
+  string,
+  {
+    basic: string | boolean;
+    starter: string | boolean;
+    business: string | boolean;
+    professional: string | boolean;
+    premium: string | boolean;
+  }
+> = {
+  "custom ui/ux": {
+    basic: false,
+    starter: "Basic",
+    business: true,
+    professional: "Advanced",
+    premium: "Premium",
+  },
+  "seo": {
+    basic: false,
+    starter: "Basic",
+    business: "Basic +",
+    professional: "Advanced",
+    premium: "Advanced",
+  },
+  "speed optimization": {
+    basic: false,
+    starter: "Basic",
+    business: true,
+    professional: "Advanced",
+    premium: "Premium",
+  },
+  "booking system": {
+    basic: false,
+    starter: false,
+    business: "Add-on",
+    professional: true,
+    premium: true,
+  },
+  "multi-language": {
+    basic: false,
+    starter: false,
+    business: "Add-on",
+    professional: "Add-on",
+    premium: true,
+  },
+  "support": {
+    basic: "7 Days",
+    starter: "15 Days",
+    business: "30 Days",
+    professional: "60 Days",
+    premium: "90 Days",
+  },
+  "company mail": {
+    basic: "1",
+    starter: "3",
+    business: "5",
+    professional: "10",
+    premium: "20+",
+  },
+};
+
+const DEFAULT_FEATURE_MATRIX: FeatureRow[] = [
   {
     name: "Responsive Design",
     basic: true,
@@ -584,14 +649,17 @@ const SEO_PACKAGES: SeoPackage[] = [
     tagline: "For businesses targeting customers in their local area.",
     iconType: "shield",
     features: [
-      "Google Business Profile Optimisation",
-      "Local Keyword Research",
-      "On-Page SEO",
-      "Basic Technical SEO",
-      "Local Citation Strategy",
-      "Google Maps Optimisation",
-      "Monthly Ranking Monitoring",
-      "Monthly Report",
+      "Everything in GROWTH SEO",
+      "Advanced Technical SEO",
+      "High-value Keyword Strategy",
+      "Content Strategy",
+      "Competitor Gap Analysis",
+      "Backlink Strategy",
+      "Advanced Local SEO",
+      "Conversion-Focused SEO",
+      "Schema Optimisation",
+      "Monthly SEO Consultation",
+      "Detailed SEO Dashboard",
     ],
   },
 ];
@@ -636,16 +704,17 @@ const BRANDING_CREATIVE_PACKAGES: BrandingSubPackage[] = [
     isPopular: true,
     iconType: "chart",
     features: [
-      "Logo Design",
-      "3 Logo Concepts",
-      "Colour Palette",
-      "Typography Selection",
-      "Business Card Design",
-      "Social Media Profile Setup",
-      "Basic Brand Guide",
-      "Letterhead & Envelope Design",
-      "Email Signature Design",
-      "Favicon Design",
+      "Everything in BRAND STARTER",
+      "4 Logo Concepts",
+      "Logo Variations",
+      "Complete Colour System",
+      "Typography System",
+      "Business Card",
+      "Letterhead",
+      "Email Signature",
+      "Social Media Templates",
+      "Brand Guidelines",
+      "Brand Presentation",
     ],
   },
   {
@@ -655,15 +724,17 @@ const BRANDING_CREATIVE_PACKAGES: BrandingSubPackage[] = [
     tagline: "A complete visual identity designed for serious businesses.",
     iconType: "shield",
     features: [
-      "Advertisement Templates",
-      "Corporate Profile Design",
-      "Presentation Template",
-      "Marketing Templates",
-      "Social Media Brand Kit",
-      "Stationery Package",
-      "Brand Guidelines",
+      "Everything in BUSINESS IDENTITY",
       "Advanced Logo System",
+      "Brand Guidelines",
+      "Stationery Package",
+      "Social Media Brand Kit",
+      "Marketing Templates",
+      "Presentation Template",
+      "Corporate Profile Design",
+      "Advertisement Templates",
       "Brand Application Examples",
+      "Complete Brand Assets Package",
     ],
   },
 ];
@@ -719,7 +790,8 @@ const CONTENT_PRODUCTION_PACKAGES: BrandingSubPackage[] = [
       "Motion Graphics",
       "Product / Brand Videos",
       "Professional Editing",
-      "Multiple Social Media Formats",
+      "Content Strategy",
+      "Multiple Social Formats",
     ],
   },
 ];
@@ -783,6 +855,9 @@ const LEAD_GENERATION_PACKAGES: BrandingSubPackage[] = [
       "Advanced Audience Segmentation",
       "Lead Quality Tracking",
       "Campaign A/B Testing",
+      "Advanced Analytics",
+      "Weekly Optimisation",
+      "Strategy Consultation",
     ],
   },
 ];
@@ -843,6 +918,489 @@ export default function PackageSelectionPage() {
     fetchCategories();
   }, [fetchCategories]);
 
+  // Backend packages integration
+  const [backendPackages, setBackendPackages] = React.useState<PackageItem[]>([]);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    async function loadPackages() {
+      try {
+        const data = await fetchPackages();
+        if (isMounted && data) {
+          setBackendPackages(data);
+        }
+      } catch (err) {
+        console.error("Failed to load packages from backend:", err);
+      }
+    }
+    loadPackages();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Filter packages belonging to Website category
+  const websiteBackendPackages = React.useMemo(() => {
+    return backendPackages.filter((p) => {
+      const catName = p.category?.name?.toLowerCase() || "";
+      return catName.includes("web") || p.id.startsWith("pkg-website-");
+    });
+  }, [backendPackages]);
+
+  // Helper to find a backend package by tier ID (e.g. basic, starter, business, professional, premium)
+  const getTierBackendPackage = React.useCallback(
+    (tierKey: string): PackageItem | undefined => {
+      const k = tierKey.toLowerCase();
+      return websiteBackendPackages.find((p) => {
+        const id = p.id.toLowerCase();
+        const name = p.name.toLowerCase();
+        return id.includes(k) || name.includes(k) || name === k;
+      });
+    },
+    [websiteBackendPackages]
+  );
+
+  // Dynamic Tiers: merges backend price, name, isPopular with static bestFor, pages
+  const displayPackageTiers: PackageTier[] = React.useMemo(() => {
+    return DEFAULT_PACKAGE_TIERS.map((tier) => {
+      const backendPkg = getTierBackendPackage(tier.id);
+      if (!backendPkg) return tier;
+
+      let formattedPrice = tier.price;
+      if (backendPkg.price !== undefined && backendPkg.price !== null) {
+        const num = Number(backendPkg.price);
+        if (!isNaN(num)) {
+          formattedPrice =
+            tier.id === "premium"
+              ? `From ${num.toLocaleString()}+`
+              : `AED ${num.toLocaleString()}`;
+        }
+      }
+
+      return {
+        ...tier,
+        name: backendPkg.name || tier.name,
+        price: formattedPrice,
+        isPopular: backendPkg.isPopular !== undefined ? backendPkg.isPopular : tier.isPopular,
+        // Static fields preserved:
+        bestFor: tier.bestFor,
+        pages: tier.pages,
+      };
+    });
+  }, [getTierBackendPackage]);
+
+  // Dynamic Feature Matrix: static fields stay static, all other fields dynamically computed from backend features
+  const displayFeatureMatrix: FeatureRow[] = React.useMemo(() => {
+    // Helper to get dynamic value of a feature from a tier package
+    const getDynamicValue = (featureName: string, tierKey: string): string | boolean => {
+      const pkg = getTierBackendPackage(tierKey);
+      if (!pkg || !pkg.features) {
+        const fallbackRow = DEFAULT_FEATURE_MATRIX.find(
+          (r) => r.name.toLowerCase() === featureName.toLowerCase()
+        );
+        return fallbackRow ? fallbackRow[tierKey as keyof FeatureRow] : false;
+      }
+
+      const match = pkg.features.find(
+        (f) => f.featureName.trim().toLowerCase() === featureName.trim().toLowerCase()
+      );
+      if (!match) {
+        return false;
+      }
+      if (match.featureValue !== null && match.featureValue !== undefined && match.featureValue !== "") {
+        return match.featureValue;
+      }
+      return match.included;
+    };
+
+    // Standard rows template
+    const rows: FeatureRow[] = DEFAULT_FEATURE_MATRIX.map((templateRow) => {
+      const lowerName = templateRow.name.trim().toLowerCase();
+      // If it's one of the user-specified static fields:
+      const staticVals = STATIC_FEATURE_VALUES[lowerName];
+      if (staticVals) {
+        return {
+          name: templateRow.name,
+          basic: staticVals.basic,
+          starter: staticVals.starter,
+          business: staticVals.business,
+          professional: staticVals.professional,
+          premium: staticVals.premium,
+        };
+      }
+
+      // Otherwise, dynamic from backend:
+      return {
+        name: templateRow.name,
+        basic: getDynamicValue(templateRow.name, "basic"),
+        starter: getDynamicValue(templateRow.name, "starter"),
+        business: getDynamicValue(templateRow.name, "business"),
+        professional: getDynamicValue(templateRow.name, "professional"),
+        premium: getDynamicValue(templateRow.name, "premium"),
+      };
+    });
+
+    return rows;
+  }, [getTierBackendPackage]);
+
+  // E-Commerce Standalone Packages from Backend
+  const miniEcomPkg = React.useMemo(() => {
+    return backendPackages.find(
+      (p) => p.id === "pkg-ecom-mini" || p.name.toLowerCase().includes("mini")
+    );
+  }, [backendPackages]);
+
+  const standardEcomPkg = React.useMemo(() => {
+    return backendPackages.find(
+      (p) =>
+        (p.id === "pkg-ecom-standard" || p.name.toLowerCase().includes("e-commerce")) &&
+        !p.name.toLowerCase().includes("mini")
+    );
+  }, [backendPackages]);
+
+  const miniEcomPrice = React.useMemo(() => {
+    if (miniEcomPkg?.price) {
+      const n = Number(miniEcomPkg.price);
+      return !isNaN(n) ? `AED ${n.toLocaleString()}` : String(miniEcomPkg.price);
+    }
+    return "AED 3,499";
+  }, [miniEcomPkg]);
+
+  const standardEcomPrice = React.useMemo(() => {
+    if (standardEcomPkg?.price) {
+      const n = Number(standardEcomPkg.price);
+      return !isNaN(n) ? `AED ${n.toLocaleString()}` : String(standardEcomPkg.price);
+    }
+    return "AED 5,999";
+  }, [standardEcomPkg]);
+
+  // Dynamic Digital Marketing Packages from DB
+  const displayMarketingPackages: MarketingPackage[] = React.useMemo(() => {
+    return MARKETING_PACKAGES.map((def) => {
+      const match = backendPackages.find((p) => {
+        const id = p.id.toLowerCase();
+        const name = p.name.toLowerCase();
+        const catName = p.category?.name?.toLowerCase() || "";
+        const isMarketing = catName.includes("market") || catName.includes("digital");
+        return (
+          (isMarketing || id.startsWith("pkg-dm-")) &&
+          (id.includes(def.id) || name === def.id || name.includes(def.name.toLowerCase()))
+        );
+      });
+      if (!match) return def;
+
+      let formattedPrice = def.price;
+      if (match.price !== undefined && match.price !== null) {
+        const n = Number(match.price);
+        if (!isNaN(n)) formattedPrice = `AED ${n.toLocaleString()}`;
+      }
+
+      let col1 = def.featuresCol1;
+      let col2 = def.featuresCol2;
+      if (match.features && match.features.length > 0) {
+        const featList = match.features.filter((f) => f.included).map((f) => f.featureName);
+        if (featList.length > 0) {
+          const mid = Math.ceil(featList.length / 2);
+          col1 = featList.slice(0, mid);
+          col2 = featList.slice(mid);
+        }
+      }
+
+      return {
+        ...def,
+        name: match.name || def.name,
+        price: formattedPrice,
+        period: match.billingType === "MONTHLY" ? "/ Month" : def.period,
+        tagline: match.description || def.tagline,
+        isPopular: match.isPopular !== undefined ? match.isPopular : def.isPopular,
+        featuresCol1: col1,
+        featuresCol2: col2,
+      };
+    });
+  }, [backendPackages]);
+
+  // Dynamic SEO Packages from DB
+  const displaySeoPackages: SeoPackage[] = React.useMemo(() => {
+    return SEO_PACKAGES.map((def) => {
+      const key = def.id.replace("-seo", "");
+      const match = backendPackages.find((p) => {
+        const id = p.id.toLowerCase();
+        const name = p.name.toLowerCase();
+        const catName = p.category?.name?.toLowerCase() || "";
+        const isSeo = catName.includes("seo") || catName.includes("geo");
+        return (
+          (isSeo || id.startsWith("pkg-seo-")) &&
+          (id.includes(key) || name.toLowerCase().includes(key))
+        );
+      });
+      if (!match) return def;
+
+      let formattedPrice = def.price;
+      if (match.price !== undefined && match.price !== null) {
+        const n = Number(match.price);
+        if (!isNaN(n)) formattedPrice = `AED ${n.toLocaleString()}`;
+      }
+
+      let feats = def.features;
+      if (match.features && match.features.length > 0) {
+        const list = match.features.filter((f) => f.included).map((f) => f.featureName);
+        if (list.length > 0) feats = list;
+      }
+
+      return {
+        ...def,
+        name: match.name || def.name,
+        price: formattedPrice,
+        period: match.billingType === "MONTHLY" ? "/ Month" : def.period,
+        tagline: match.description || def.tagline,
+        isPopular: match.isPopular !== undefined ? match.isPopular : def.isPopular,
+        features: feats,
+      };
+    });
+  }, [backendPackages]);
+
+  // Dynamic Branding & Creative Packages from DB
+  const displayBrandingPackages: BrandingSubPackage[] = React.useMemo(() => {
+    return BRANDING_CREATIVE_PACKAGES.map((def) => {
+      const key = def.id.replace("brand-", "").replace("business-", "");
+      const match = backendPackages.find((p) => {
+        const id = p.id.toLowerCase();
+        const name = p.name.toLowerCase();
+        return (
+          id === `pkg-${def.id}` ||
+          id === def.id ||
+          (id.startsWith("pkg-brand-") && (id.includes(key) || name.includes(key))) ||
+          name === def.name.toLowerCase()
+        );
+      });
+      if (!match) return def;
+
+      let formattedPrice = def.price;
+      if (match.price !== undefined && match.price !== null) {
+        const n = Number(match.price);
+        if (!isNaN(n)) formattedPrice = `AED ${n.toLocaleString()}`;
+      }
+
+      let feats = def.features;
+      if (match.features && match.features.length > 0) {
+        const list = match.features.filter((f) => f.included).map((f) => f.featureName);
+        if (list.length > 0) feats = list;
+      }
+
+      return {
+        ...def,
+        name: match.name || def.name,
+        price: formattedPrice,
+        tagline: match.description || def.tagline,
+        isPopular: match.isPopular !== undefined ? match.isPopular : def.isPopular,
+        features: feats,
+      };
+    });
+  }, [backendPackages]);
+
+  // Dynamic Content Production Packages from DB
+  const displayContentPackages: BrandingSubPackage[] = React.useMemo(() => {
+    return CONTENT_PRODUCTION_PACKAGES.map((def) => {
+      const key = def.id.replace("content-", "");
+      const match = backendPackages.find((p) => {
+        const id = p.id.toLowerCase();
+        const name = p.name.toLowerCase();
+        return (
+          id === `pkg-${def.id}` ||
+          id === def.id ||
+          (id.startsWith("pkg-content-") && (id.includes(key) || name.includes(key)))
+        );
+      });
+      if (!match) return def;
+
+      let formattedPrice = def.price;
+      if (match.price !== undefined && match.price !== null) {
+        const n = Number(match.price);
+        if (!isNaN(n)) formattedPrice = `AED ${n.toLocaleString()}`;
+      }
+
+      let feats = def.features;
+      if (match.features && match.features.length > 0) {
+        const list = match.features.filter((f) => f.included).map((f) => f.featureName);
+        if (list.length > 0) feats = list;
+      }
+
+      return {
+        ...def,
+        name: match.name || def.name,
+        price: formattedPrice,
+        period: match.billingType === "MONTHLY" ? "/ Month" : def.period,
+        tagline: match.description || def.tagline,
+        isPopular: match.isPopular !== undefined ? match.isPopular : def.isPopular,
+        features: feats,
+      };
+    });
+  }, [backendPackages]);
+
+  // Dynamic Lead Generation Packages from DB
+  const displayLeadPackages: BrandingSubPackage[] = React.useMemo(() => {
+    return LEAD_GENERATION_PACKAGES.map((def) => {
+      const key = def.id.replace("lead-", "");
+      const match = backendPackages.find((p) => {
+        const id = p.id.toLowerCase();
+        const name = p.name.toLowerCase();
+        return (
+          id === `pkg-${def.id}` ||
+          id === def.id ||
+          (id.startsWith("pkg-lead-") && (id.includes(key) || name.includes(key)))
+        );
+      });
+      if (!match) return def;
+
+      let formattedPrice = def.price;
+      if (match.price !== undefined && match.price !== null) {
+        const n = Number(match.price);
+        if (!isNaN(n)) formattedPrice = `AED ${n.toLocaleString()}`;
+      }
+
+      let feats = def.features;
+      if (match.features && match.features.length > 0) {
+        const list = match.features.filter((f) => f.included).map((f) => f.featureName);
+        if (list.length > 0) feats = list;
+      }
+
+      return {
+        ...def,
+        name: match.name || def.name,
+        price: formattedPrice,
+        period: match.billingType === "MONTHLY" ? "/ Month" : def.period,
+        tagline: match.description || def.tagline,
+        isPopular: match.isPopular !== undefined ? match.isPopular : def.isPopular,
+        features: feats,
+      };
+    });
+  }, [backendPackages]);
+
+  // Dynamic Growth 360 Package from DB
+  const displayGrowth360Package = React.useMemo(() => {
+    const match = backendPackages.find((p) => {
+      const id = p.id.toLowerCase();
+      const name = p.name.toLowerCase();
+      return id === "pkg-growth-360" || id === "growth-360" || name.includes("growth 360");
+    });
+    if (!match) return GROWTH_360_PACKAGE;
+
+    let formattedPrice = GROWTH_360_PACKAGE.price;
+    if (match.price !== undefined && match.price !== null) {
+      const n = Number(match.price);
+      if (!isNaN(n)) formattedPrice = `AED ${n.toLocaleString()}`;
+    }
+
+    let col1 = GROWTH_360_PACKAGE.featuresCol1;
+    let col2 = GROWTH_360_PACKAGE.featuresCol2;
+    if (match.features && match.features.length > 0) {
+      const featList = match.features.filter((f) => f.included).map((f) => f.featureName);
+      if (featList.length > 0) {
+        const mid = Math.ceil(featList.length / 2);
+        col1 = featList.slice(0, mid);
+        col2 = featList.slice(mid);
+      }
+    }
+
+    return {
+      ...GROWTH_360_PACKAGE,
+      name: match.name || GROWTH_360_PACKAGE.name,
+      price: formattedPrice,
+      period: match.billingType === "MONTHLY" ? "/ Month" : GROWTH_360_PACKAGE.period,
+      tagline: match.description || GROWTH_360_PACKAGE.tagline,
+      featuresCol1: col1,
+      featuresCol2: col2,
+    };
+  }, [backendPackages]);
+
+  // Dynamic Video Production Packages from DB
+  const displayVideoPackages: VideoPackageItem[] = React.useMemo(() => {
+    return VIDEO_PACKAGES.map((def) => {
+      const key = def.id.replace("video-", "");
+      const match = backendPackages.find((p) => {
+        const id = p.id.toLowerCase();
+        const name = p.name.toLowerCase();
+        const catName = p.category?.name?.toLowerCase() || "";
+        const isVideo =
+          catName.includes("video") || catName.includes("film") || catName.includes("reel");
+        return (
+          (isVideo || id.startsWith("pkg-video-")) &&
+          (id.includes(key) || name.includes(key))
+        );
+      });
+      if (!match) return def;
+
+      let formattedPrice = def.price;
+      if (match.price !== undefined && match.price !== null) {
+        const n = Number(match.price);
+        if (!isNaN(n)) formattedPrice = `AED ${n.toLocaleString()}`;
+      }
+
+      let feats = def.features;
+      if (match.features && match.features.length > 0) {
+        const list = match.features.filter((f) => f.included).map((f) => f.featureName);
+        if (list.length > 0) feats = list;
+      }
+
+      return {
+        ...def,
+        name: match.name || def.name,
+        price: formattedPrice,
+        period: match.billingType === "MONTHLY" ? "/ Month" : def.period,
+        tagline: match.description || def.tagline,
+        isPopular: match.isPopular !== undefined ? match.isPopular : def.isPopular,
+        features: feats,
+      };
+    });
+  }, [backendPackages]);
+
+  // Dynamic E-Commerce Features from DB
+  const miniEcomFeatures = React.useMemo(() => {
+    if (miniEcomPkg?.features && miniEcomPkg.features.length > 0) {
+      return miniEcomPkg.features.filter((f) => f.included).map((f) => f.featureName);
+    }
+    return [
+      "Custom E-Commerce Design",
+      "Product Catalogue",
+      "Product Management",
+      "Shopping Cart",
+      "Checkout System",
+      "Payment Gateway Integration",
+      "Order Management",
+      "Admin Dashboard",
+      "Customer Accounts",
+      "Coupon & Discount System",
+      "WhatsApp Integration",
+      "Google Analytics",
+      "Conversion Tracking",
+      "Basic SEO",
+      "Mobile Optimization",
+    ];
+  }, [miniEcomPkg]);
+
+  const standardEcomFeatures = React.useMemo(() => {
+    if (standardEcomPkg?.features && standardEcomPkg.features.length > 0) {
+      return standardEcomPkg.features.filter((f) => f.included).map((f) => f.featureName);
+    }
+    return [
+      "Custom E-Commerce Design",
+      "Product Catalogue",
+      "Product Management",
+      "Shopping Cart",
+      "Checkout System",
+      "Payment Gateway Integration",
+      "Order Management",
+      "Admin Dashboard",
+      "Customer Accounts",
+      "Coupon & Discount System",
+      "WhatsApp Integration",
+      "Google Analytics",
+      "Conversion Tracking",
+      "Basic SEO",
+      "Mobile Optimization",
+    ];
+  }, [standardEcomPkg]);
+
   const displayCategories = React.useMemo(() => {
     const activeFromStore = storeCategories.filter((c) => c.status !== false);
     if (activeFromStore.length > 0) {
@@ -873,10 +1431,16 @@ export default function PackageSelectionPage() {
   const activeSlug = activeCategory ? getCategorySlug(activeCategory) : "web";
 
   const handleSelectPackage = (tierId: string) => {
+    if (activeCategory?.id) {
+      setCategory(activeCategory.id as ServiceCategoryId);
+    }
     setTier(tierId as PackageTierId);
   };
 
   const handleChooseEcommerce = (type: string) => {
+    if (activeCategory?.id) {
+      setCategory(activeCategory.id as ServiceCategoryId);
+    }
     setEcommerce(type as EcommerceTierId);
   };
 
@@ -1061,18 +1625,6 @@ export default function PackageSelectionPage() {
                             <p className="text-sm font-bold truncate">
                               {cat.name}
                             </p>
-                            {cat.hasAddons && (
-                              <span
-                                className={`text-[9px] font-semibold px-1.5 py-0.5 rounded border leading-none shrink-0 ${
-                                  isActive
-                                    ? "bg-emerald-400/25 text-emerald-200 border-emerald-300/40"
-                                    : "bg-emerald-950/60 text-emerald-400 border-emerald-500/30"
-                                }`}
-                                title="Add-ons available"
-                              >
-                                +Addons
-                              </span>
-                            )}
                           </div>
                           <p
                             className={`text-xs truncate ${
@@ -1186,7 +1738,7 @@ export default function PackageSelectionPage() {
 
               {/* Stacked White Package Cards */}
               <div className="space-y-5">
-                {MARKETING_PACKAGES.map((pkg) => {
+                {displayMarketingPackages.map((pkg) => {
                   const isSelected = selectedTier === pkg.id;
 
                   return (
@@ -1305,7 +1857,7 @@ export default function PackageSelectionPage() {
 
               {/* 3 Vertical Cards Side by Side */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
-                {SEO_PACKAGES.map((pkg) => {
+                {displaySeoPackages.map((pkg) => {
                   const isSelected = selectedTier === pkg.id;
 
                   return (
@@ -1410,7 +1962,7 @@ export default function PackageSelectionPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch pt-2">
-                  {BRANDING_CREATIVE_PACKAGES.map((pkg) => {
+                  {displayBrandingPackages.map((pkg) => {
                     const isSelected = selectedTier === pkg.id;
 
                     return (
@@ -1495,7 +2047,7 @@ export default function PackageSelectionPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch pt-2">
-                  {CONTENT_PRODUCTION_PACKAGES.map((pkg) => {
+                  {displayContentPackages.map((pkg) => {
                     const isSelected = selectedTier === pkg.id;
 
                     return (
@@ -1577,7 +2129,7 @@ export default function PackageSelectionPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch pt-2">
-                  {LEAD_GENERATION_PACKAGES.map((pkg) => {
+                  {displayLeadPackages.map((pkg) => {
                     const isSelected = selectedTier === pkg.id;
 
                     return (
@@ -1666,7 +2218,7 @@ export default function PackageSelectionPage() {
 
                 <div
                   className={`bg-white rounded-3xl p-6 sm:p-8 relative shadow-md transition-all border ${
-                    selectedTier === GROWTH_360_PACKAGE.id
+                    selectedTier === displayGrowth360Package.id
                       ? "border-[#00a6ff] ring-2 ring-[#00a6ff] shadow-xl shadow-sky-500/10"
                       : "border-slate-200 hover:border-sky-300"
                   }`}
@@ -1687,23 +2239,23 @@ export default function PackageSelectionPage() {
                         />
                       </div>
                       <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-2 uppercase">
-                        {GROWTH_360_PACKAGE.name}
+                        {displayGrowth360Package.name}
                       </h3>
                       <p className="text-xl sm:text-2xl font-black text-[#0c2242] mt-0.5 tracking-tight">
-                        {GROWTH_360_PACKAGE.price}{" "}
+                        {displayGrowth360Package.price}{" "}
                         <span className="text-xs sm:text-sm font-bold text-slate-600 tracking-normal">
-                          {GROWTH_360_PACKAGE.period}
+                          {displayGrowth360Package.period}
                         </span>
                       </p>
                       <p className="text-xs text-slate-500 mt-1 max-w-[210px] leading-tight">
-                        {GROWTH_360_PACKAGE.tagline}
+                        {displayGrowth360Package.tagline}
                       </p>
                     </div>
 
                     {/* Center: 2-Column Feature Checklist */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2.5 text-xs sm:text-sm flex-1 w-full border-t lg:border-t-0 lg:border-l border-slate-200 pt-4 lg:pt-0 lg:pl-8">
                       <div className="space-y-2">
-                        {GROWTH_360_PACKAGE.featuresCol1.map((feat) => (
+                        {displayGrowth360Package.featuresCol1.map((feat) => (
                           <div
                             key={feat}
                             className="flex items-center gap-2.5 text-slate-800 font-medium"
@@ -1714,7 +2266,7 @@ export default function PackageSelectionPage() {
                         ))}
                       </div>
                       <div className="space-y-2">
-                        {GROWTH_360_PACKAGE.featuresCol2.map((feat) => (
+                        {displayGrowth360Package.featuresCol2.map((feat) => (
                           <div
                             key={feat}
                             className="flex items-center gap-2.5 text-slate-800 font-medium"
@@ -1729,14 +2281,14 @@ export default function PackageSelectionPage() {
                     {/* Right: Choose Package Button */}
                     <div className="shrink-0 flex items-center justify-end w-full lg:w-auto lg:self-end">
                       <button
-                        onClick={() => handleSelectPackage(GROWTH_360_PACKAGE.id)}
+                        onClick={() => handleSelectPackage(displayGrowth360Package.id)}
                         className={`w-full lg:w-auto px-6 py-2.5 rounded-xl font-bold text-sm tracking-wide transition-all shadow-md cursor-pointer ${
-                          selectedTier === GROWTH_360_PACKAGE.id
+                          selectedTier === displayGrowth360Package.id
                             ? "bg-emerald-600 text-white shadow-emerald-600/30 ring-2 ring-emerald-400/50"
                             : "bg-[#00a6ff] hover:bg-[#0092e0] text-white shadow-sky-500/20"
                         }`}
                       >
-                        {selectedTier === GROWTH_360_PACKAGE.id ? "Selected ✓" : "Choose Package"}
+                        {selectedTier === displayGrowth360Package.id ? "Selected ✓" : "Choose Package"}
                       </button>
                     </div>
                   </div>
@@ -1773,7 +2325,7 @@ export default function PackageSelectionPage() {
 
               {/* 3 Vertical Cards Side by Side */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch pt-2">
-                {VIDEO_PACKAGES.map((pkg) => {
+                {displayVideoPackages.map((pkg) => {
                   const isSelected = selectedTier === pkg.id;
 
                   return (
@@ -1888,13 +2440,13 @@ export default function PackageSelectionPage() {
                       </div>
                       <div>
                         <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
-                          MINI E-COMMERCE WEBSITE FROM
+                          {miniEcomPkg?.name ? `${miniEcomPkg.name} FROM` : "MINI E-COMMERCE WEBSITE FROM"}
                         </h3>
                         <p className="text-3xl font-black text-[#0284c7] mt-0.5 tracking-tight">
-                          AED 3,499
+                          {miniEcomPrice}
                         </p>
                         <p className="text-xs text-slate-400 mt-1 leading-tight">
-                          Final pricing depends on functionality and product volume.
+                          {miniEcomPkg?.description || "Final pricing depends on functionality and product volume."}
                         </p>
                       </div>
                     </div>
@@ -1902,69 +2454,21 @@ export default function PackageSelectionPage() {
                     {/* Center: 2 Columns of Deliverables Checklist */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2.5 text-sm flex-1">
                       <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Custom E-Commerce Design</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Product Catalogue</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Product Management</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Shopping Cart</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Checkout System</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Payment Gateway Integration</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Order Management</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Admin Dashboard</span>
-                        </div>
+                        {miniEcomFeatures.slice(0, Math.ceil(miniEcomFeatures.length / 2)).map((feat) => (
+                          <div key={feat} className="flex items-center gap-2 text-slate-200">
+                            <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                            <span>{feat}</span>
+                          </div>
+                        ))}
                       </div>
 
                       <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Customer Accounts</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Coupon & Discount System</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>WhatsApp Integration</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Google Analytics</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Conversion Tracking</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Basic SEO</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Mobile Optimization</span>
-                        </div>
+                        {miniEcomFeatures.slice(Math.ceil(miniEcomFeatures.length / 2)).map((feat) => (
+                          <div key={feat} className="flex items-center gap-2 text-slate-200">
+                            <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                            <span>{feat}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
 
@@ -1998,13 +2502,13 @@ export default function PackageSelectionPage() {
                       </div>
                       <div>
                         <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
-                          E-COMMERCE WEBSITE FROM
+                          {standardEcomPkg?.name ? `${standardEcomPkg.name} FROM` : "E-COMMERCE WEBSITE FROM"}
                         </h3>
                         <p className="text-3xl font-black text-[#0284c7] mt-0.5 tracking-tight">
-                          AED 5,999
+                          {standardEcomPrice}
                         </p>
                         <p className="text-xs text-slate-400 mt-1 leading-tight">
-                          Final pricing depends on functionality and product volume.
+                          {standardEcomPkg?.description || "Final pricing depends on functionality and product volume."}
                         </p>
                       </div>
                     </div>
@@ -2012,69 +2516,21 @@ export default function PackageSelectionPage() {
                     {/* Center: 2 Columns of Deliverables Checklist */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2.5 text-sm flex-1">
                       <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Custom E-Commerce Design</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Product Catalogue</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Product Management</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Shopping Cart</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Checkout System</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Payment Gateway Integration</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Order Management</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Admin Dashboard</span>
-                        </div>
+                        {standardEcomFeatures.slice(0, Math.ceil(standardEcomFeatures.length / 2)).map((feat) => (
+                          <div key={feat} className="flex items-center gap-2 text-slate-200">
+                            <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                            <span>{feat}</span>
+                          </div>
+                        ))}
                       </div>
 
                       <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Customer Accounts</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Coupon & Discount System</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>WhatsApp Integration</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Google Analytics</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Conversion Tracking</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Basic SEO</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-200">
-                          <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                          <span>Mobile Optimization</span>
-                        </div>
+                        {standardEcomFeatures.slice(Math.ceil(standardEcomFeatures.length / 2)).map((feat) => (
+                          <div key={feat} className="flex items-center gap-2 text-slate-200">
+                            <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                            <span>{feat}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
 
@@ -2134,7 +2590,7 @@ export default function PackageSelectionPage() {
                     <th className="text-left py-3.5 px-3 w-[22%] text-slate-400 font-bold text-xs uppercase tracking-wider">
                       Tier / Metric
                     </th>
-                    {PACKAGE_TIERS.map((tier) => {
+                    {displayPackageTiers.map((tier) => {
                       const isSelected = selectedTier === tier.id && selectedEcommerce === null;
                       return (
                         <th
@@ -2177,7 +2633,7 @@ export default function PackageSelectionPage() {
                     <td className="text-left py-3.5 px-3 text-slate-300 font-bold text-sm">
                       Price
                     </td>
-                    {PACKAGE_TIERS.map((tier) => {
+                    {displayPackageTiers.map((tier) => {
                       const isSelected = selectedTier === tier.id && selectedEcommerce === null;
                       return (
                         <td
@@ -2196,12 +2652,12 @@ export default function PackageSelectionPage() {
                     })}
                   </tr>
 
-                  {/* Row: Best For */}
+                  {/* Row: Best For (Static) */}
                   <tr className="hover:bg-[#0c1a2f]/60 transition-colors">
                     <td className="text-left py-3.5 px-3 text-slate-300 font-semibold text-sm">
                       Best For
                     </td>
-                    {PACKAGE_TIERS.map((tier) => {
+                    {displayPackageTiers.map((tier) => {
                       const isSelected = selectedTier === tier.id && selectedEcommerce === null;
                       return (
                         <td
@@ -2220,12 +2676,12 @@ export default function PackageSelectionPage() {
                     })}
                   </tr>
 
-                  {/* Row: Pages */}
+                  {/* Row: Pages (Static) */}
                   <tr className="hover:bg-[#0c1a2f]/60 transition-colors">
                     <td className="text-left py-3.5 px-3 text-slate-300 font-semibold text-sm">
                       Pages
                     </td>
-                    {PACKAGE_TIERS.map((tier) => {
+                    {displayPackageTiers.map((tier) => {
                       const isSelected = selectedTier === tier.id && selectedEcommerce === null;
                       return (
                         <td
@@ -2244,8 +2700,8 @@ export default function PackageSelectionPage() {
                     })}
                   </tr>
 
-                  {/* Feature Rows */}
-                  {FEATURE_MATRIX.map((row, idx) => (
+                  {/* Feature Rows (Merged Static & Dynamic from Backend) */}
+                  {displayFeatureMatrix.map((row, idx) => (
                     <tr
                       key={idx}
                       className="hover:bg-[#0c1a2f]/60 transition-colors"
@@ -2253,7 +2709,7 @@ export default function PackageSelectionPage() {
                       <td className="text-left py-3 px-3 text-slate-300 font-medium text-sm">
                         {row.name}
                       </td>
-                      {PACKAGE_TIERS.map((tier) => {
+                      {displayPackageTiers.map((tier) => {
                         const isSelected = selectedTier === tier.id && selectedEcommerce === null;
                         const cellVal = row[tier.id as keyof FeatureRow];
                         return (
@@ -2279,7 +2735,7 @@ export default function PackageSelectionPage() {
                     <td className="text-left py-4 px-3 text-slate-400 font-bold text-xs uppercase tracking-wider">
                       Action
                     </td>
-                    {PACKAGE_TIERS.map((tier) => {
+                    {displayPackageTiers.map((tier) => {
                       const isSelected = selectedTier === tier.id && selectedEcommerce === null;
                       return (
                         <td
@@ -2316,7 +2772,7 @@ export default function PackageSelectionPage() {
           {/* E-COMMERCE STANDALONE PACKAGES (2 Cards below) */}
           {/* ------------------------------------------------------------------ */}
           <div className="space-y-4">
-            {/* E-Commerce Package 1: MINI E-COMMERCE WEBSITE FROM AED 3,499 */}
+            {/* E-Commerce Package 1: MINI E-COMMERCE WEBSITE */}
             <div className={`rounded-3xl p-6 sm:p-7 shadow-2xl transition-all border ${
               selectedEcommerce === "mini"
                 ? "bg-[#0b2447] border-2 border-sky-400 shadow-sky-600/30 ring-1 ring-sky-300/40"
@@ -2330,13 +2786,13 @@ export default function PackageSelectionPage() {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
-                      MINI E-COMMERCE WEBSITE FROM
+                      {miniEcomPkg?.name ? `${miniEcomPkg.name} FROM` : "MINI E-COMMERCE WEBSITE FROM"}
                     </h3>
                     <p className="text-3xl font-black text-[#0284c7] mt-0.5 tracking-tight">
-                      AED 3,499
+                      {miniEcomPrice}
                     </p>
                     <p className="text-xs text-slate-400 mt-1 leading-tight">
-                      Final pricing depends on functionality and product volume.
+                      {miniEcomPkg?.description || "Final pricing depends on functionality and product volume."}
                     </p>
                   </div>
                 </div>
@@ -2426,7 +2882,7 @@ export default function PackageSelectionPage() {
               </div>
             </div>
 
-            {/* E-Commerce Package 2: E-COMMERCE WEBSITE FROM AED 5,999 */}
+            {/* E-Commerce Package 2: E-COMMERCE WEBSITE */}
             <div className={`rounded-3xl p-6 sm:p-7 shadow-2xl transition-all border ${
               selectedEcommerce === "standard"
                 ? "bg-[#0b2447] border-2 border-sky-400 shadow-sky-600/30 ring-1 ring-sky-300/40"
@@ -2440,13 +2896,13 @@ export default function PackageSelectionPage() {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
-                      E-COMMERCE WEBSITE FROM
+                      {standardEcomPkg?.name ? `${standardEcomPkg.name} FROM` : "E-COMMERCE WEBSITE FROM"}
                     </h3>
                     <p className="text-3xl font-black text-[#0284c7] mt-0.5 tracking-tight">
-                      AED 5,999
+                      {standardEcomPrice}
                     </p>
                     <p className="text-xs text-slate-400 mt-1 leading-tight">
-                      Final pricing depends on functionality and product volume.
+                      {standardEcomPkg?.description || "Final pricing depends on functionality and product volume."}
                     </p>
                   </div>
                 </div>

@@ -13,16 +13,16 @@ import {
 } from "./schemas/proposal.schema";
 
 export const DEFAULT_COMPANY_DETAILS: CompanyDetailsFormData = {
-  companyName: "Abc technologies",
-  contactNumber: "+987 14 222222",
-  contactPerson: "Dhasarath kp",
-  location: "Fujairah, Fujairah Emirate, United Arab Emirates",
-  emailAddress: "Info@abctechnologies.com",
-  industry: "Real Estate",
-  requiredServices: "Social Media + Video Production",
-  projectDescription: "we need....................................",
-  expectedDeliveryDate: "2026-09-30",
-  additionalNotes: "Focus on modern 3d animation website.",
+  companyName: "",
+  contactNumber: "",
+  contactPerson: "",
+  location: "",
+  emailAddress: "",
+  industry: "",
+  requiredServices: "",
+  projectDescription: "",
+  expectedDeliveryDate: "",
+  additionalNotes: "",
 };
 
 export const DEFAULT_PACKAGE_SELECTION: PackageSelectionData = {
@@ -75,15 +75,10 @@ export const useProposalStore = create<ProposalStore>()(
     (set, get) => ({
       companyDetails: DEFAULT_COMPANY_DETAILS,
       packageSelection: DEFAULT_PACKAGE_SELECTION,
-      selectedAddonIds: [
-        "regular-content",
-        "social-video",
-        "photo-shoot",
-        "technical-consultation",
-      ],
+      selectedAddonIds: [],
       activeRole: "SALES_STAFF",
       isDarkMode: true,
-      currentStep: 3,
+      currentStep: 1,
       errors: {},
       isSubmitting: false,
       isSaved: false,
@@ -227,7 +222,7 @@ export const useProposalStore = create<ProposalStore>()(
         set({
           companyDetails: DEFAULT_COMPANY_DETAILS,
           packageSelection: DEFAULT_PACKAGE_SELECTION,
-          selectedAddonIds: ["photography", "social-posts", "drone-shoot", "extra-videos"],
+          selectedAddonIds: [],
           activeRole: "SALES_STAFF",
           currentStep: 1,
           errors: {},
@@ -239,6 +234,39 @@ export const useProposalStore = create<ProposalStore>()(
     }),
     {
       name: "crm_proposal_store",
+      version: 3,
+      migrate: (persistedState: any, version: number) => {
+        let state = persistedState || {};
+        if (!version || version < 2) {
+          const legacyMockAddons = new Set([
+            "regular-content",
+            "social-video",
+            "photo-shoot",
+            "technical-consultation",
+            "photography",
+            "social-posts",
+            "drone-shoot",
+            "extra-videos",
+          ]);
+          const currentAddons = (persistedState as any)?.selectedAddonIds || [];
+          state = {
+            ...state,
+            selectedAddonIds: currentAddons.filter((id: string) => !legacyMockAddons.has(id)),
+          };
+        }
+        if (
+          version < 3 ||
+          state?.companyDetails?.companyName === "Abc technologies" ||
+          state?.companyDetails?.companyName === "ABC Technologies"
+        ) {
+          state = {
+            ...state,
+            companyDetails: DEFAULT_COMPANY_DETAILS,
+            isSaved: false,
+          };
+        }
+        return state;
+      },
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         companyDetails: state.companyDetails,

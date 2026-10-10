@@ -68,12 +68,19 @@ export async function apiClient<T>(
     }
   }
 
-  const token = useAuthStore.getState().accessToken;
+  const token =
+    useAuthStore.getState().accessToken ||
+    (typeof window !== "undefined"
+      ? localStorage.getItem("crm_access_token") ||
+        localStorage.getItem("accessToken") ||
+        localStorage.getItem("token")
+      : null);
   if (requiresAuth && token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
   const fetchOptions: RequestInit = {
+    cache: "no-store",
     ...customOptions,
     headers,
     credentials: "include", // Required for refresh token cookie

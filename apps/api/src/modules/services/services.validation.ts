@@ -11,7 +11,7 @@ export const createCategorySchema = z.object({
 });
 
 export const updateCategorySchema = z.object({
-  params: z.object({ id: z.string().uuid() }),
+  params: z.object({ id: z.string().min(1) }),
   body: z.object({
     name: z.string().min(2).optional(),
     description: z.string().optional(),
@@ -22,15 +22,16 @@ export const updateCategorySchema = z.object({
 });
 
 const featureSchema = z.object({
+  id: z.string().optional(),
   featureName: z.string().min(1),
-  featureValue: z.string().optional(),
+  featureValue: z.string().optional().nullable(),
   included: z.boolean().default(true),
   sortOrder: z.number().int().default(0),
 });
 
 export const createPackageSchema = z.object({
   body: z.object({
-    categoryId: z.string().uuid(),
+    categoryId: z.string().min(1),
     name: z.string().min(2),
     description: z.string().optional(),
     price: z.coerce.number().nonnegative(),
@@ -45,9 +46,9 @@ export const createPackageSchema = z.object({
 });
 
 export const updatePackageSchema = z.object({
-  params: z.object({ id: z.string().uuid() }),
+  params: z.object({ id: z.string().min(1) }),
   body: z.object({
-    categoryId: z.string().uuid().optional(),
+    categoryId: z.string().min(1).optional(),
     name: z.string().min(2).optional(),
     description: z.string().optional(),
     price: z.coerce.number().nonnegative().optional(),
@@ -65,7 +66,7 @@ export const createAddonSchema = z.object({
   body: z.object({
     name: z.string().min(2),
     description: z.string().optional(),
-    categoryId: z.string().uuid(),
+    categoryId: z.string().min(1).optional().nullable(),
     price: z.coerce.number().nonnegative(),
     taxPercentage: z.coerce.number().nonnegative().default(5.0),
     pricingType: z.enum(["ONE_TIME", "MONTHLY", "YEARLY", "CUSTOM"]).default("ONE_TIME"),
@@ -74,11 +75,11 @@ export const createAddonSchema = z.object({
 });
 
 export const updateAddonSchema = z.object({
-  params: z.object({ id: z.string().uuid() }),
+  params: z.object({ id: z.string().min(1) }),
   body: z.object({
     name: z.string().min(2).optional(),
     description: z.string().optional(),
-    categoryId: z.string().uuid().optional(),
+    categoryId: z.string().min(1).optional().nullable(),
     price: z.coerce.number().nonnegative().optional(),
     taxPercentage: z.coerce.number().nonnegative().optional(),
     pricingType: z.enum(["ONE_TIME", "MONTHLY", "YEARLY", "CUSTOM"]).optional(),
@@ -86,4 +87,4 @@ export const updateAddonSchema = z.object({
   }),
 });
 
-export const idParamSchema = z.object({ params: z.object({ id: z.string().uuid() }) });
+export const idParamSchema = z.object({ params: z.object({ id: z.string().min(1) }) });

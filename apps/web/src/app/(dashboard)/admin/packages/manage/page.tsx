@@ -15,8 +15,16 @@ import {
   Upload,
   LayoutGrid,
   ChevronDown,
+  AlertCircle,
 } from "lucide-react";
-import { fetchPackages, updatePackage, createPackage, fetchCategories } from "@/lib/catalog-api";
+import {
+  fetchPackages,
+  getPackageById,
+  updatePackage,
+  createPackage,
+  fetchCategories,
+  ServiceCategory,
+} from "@/lib/catalog-api";
 
 interface FeatureRow {
   id?: string;
@@ -124,6 +132,9 @@ export default function PackageEditManagerPage() {
 
   const initialPreset = PRESET_PACKAGES[typeParam] || PRESET_PACKAGES.website;
 
+  const [categoriesList, setCategoriesList] = React.useState<ServiceCategory[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = React.useState<string>("");
+
   const [pageTitle, setPageTitle] = React.useState(initialPreset.title);
   const [isActive, setIsActive] = React.useState(true);
   const [packageName, setPackageName] = React.useState(initialPreset.packageName);
@@ -140,26 +151,56 @@ export default function PackageEditManagerPage() {
 
   const [saving, setSaving] = React.useState(false);
   const [saveSuccess, setSaveSuccess] = React.useState(false);
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+
+  // Fetch categories from database on mount
+  React.useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const cats = await fetchCategories();
+        if (cats && cats.length > 0) {
+          setCategoriesList(cats);
+          const matched =
+            cats.find((c) => c.name.toLowerCase() === category.toLowerCase()) || cats[0];
+          if (matched && !selectedCategoryId) {
+            setSelectedCategoryId(matched.id);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load categories:", err);
+      }
+    };
+    loadCategories();
+  }, [category, selectedCategoryId]);
 
   // Load from API if an actual package ID was passed
   React.useEffect(() => {
     if (!idParam) return;
     const loadFromApi = async () => {
       try {
-        const pkgs = await fetchPackages();
-        const found = pkgs.find((p) => p.id === idParam);
+        let found: any = null;
+        try {
+          found = await getPackageById(idParam);
+        } catch {
+          const pkgs = await fetchPackages();
+          found = pkgs.find((p) => p.id === idParam);
+        }
+
         if (found) {
           setPackageName(found.name);
           setPrice(String(found.price));
           setDescription(found.description || "");
           setIsActive(found.status);
+          if (found.categoryId) {
+            setSelectedCategoryId(found.categoryId);
+          }
           if (found.category?.name) {
             setCategory(found.category.name);
             setPageTitle(`${found.category.name} Package Manager`);
           }
           if (found.features && found.features.length > 0) {
             setFeatures(
-              found.features.map((f) => ({
+              found.features.map((f: any) => ({
                 id: f.id,
                 featureName: f.featureName,
                 included: f.included,
@@ -167,10 +208,29 @@ export default function PackageEditManagerPage() {
             );
           }
         }
-      } catch {}
+      } catch (err) {
+        console.error("Failed to load package for editing:", err);
+      }
     };
     loadFromApi();
   }, [idParam]);
+
+  // Switch preset handler
+  const handleApplyPreset = (key: string) => {
+    const p = PRESET_PACKAGES[key] || PRESET_PACKAGES.website;
+    setPageTitle(p.title);
+    setPackageName(p.packageName);
+    setCategory(p.category);
+    const matched = categoriesList.find((c) => c.name.toLowerCase() === p.category.toLowerCase());
+    if (matched) {
+      setSelectedCategoryId(matched.id);
+    }
+    setPrice(p.price);
+    setDescription(p.description);
+    setHighlightTag(p.highlightTag);
+    setFeatures(p.features);
+    setErrorMessage(null);
+  };
 
   // Handle adding feature
   const handleAddFeature = () => {
@@ -213,52 +273,87 @@ export default function PackageEditManagerPage() {
 
   // Save changes
   const handleSaveChanges = async () => {
+    if (!packageName.trim()) {
+      setErrorMessage("Package Name is required (minimum 2 characters).");
+      return;
+    }
+    if (packageName.trim().length < 2) {
+      setErrorMessage("Package Name must be at least 2 characters.");
+      return;
+    }
+    const numPrice = parseFloat(price);
+    if (isNaN(numPrice) || numPrice < 0) {
+      setErrorMessage("Please enter a valid price in AED.");
+      return;
+    }
+
     setSaving(true);
+    setErrorMessage(null);
+
     try {
-      if (idParam) {
-        await updatePackage(idParam, {
-          name: packageName,
-          price: parseFloat(price) || 0,
-          description,
-          status: isActive,
-          features: features.map((f, idx) => ({
-            featureName: f.featureName,
-            included: f.included,
-            sortOrder: idx + 1,
-          })),
-        });
-      } else {
-        const catList = await fetchCategories();
+      // Find matching category ID
+      let catId = selectedCategoryId;
+      if (!catId) {
+        const catList = categoriesList.length > 0 ? categoriesList : await fetchCategories();
         const matched =
-          catList.find((c) => c.name.toLowerCase() === category.toLowerCase()) ||
-          catList[0];
+          catList.find((c) => c.name.toLowerCase() === category.toLowerCase()) || catList[0];
         if (matched) {
-          await createPackage({
-            categoryId: matched.id,
-            name: packageName,
-            price: parseFloat(price) || 0,
-            description,
-            status: isActive,
-            billingType: "ONE_TIME",
-            features: features.map((f, idx) => ({
-              featureName: f.featureName,
-              included: f.included,
-              sortOrder: idx + 1,
-            })),
-          });
+          catId = matched.id;
+          setSelectedCategoryId(catId);
         }
       }
+
+      if (!catId) {
+        throw new Error("Category not found in database. Please choose a valid category.");
+      }
+
+      const cleanFeatures = features
+        .filter((f) => f.featureName && f.featureName.trim().length > 0)
+        .map((f, idx) => ({
+          featureName: f.featureName.trim(),
+          included: Boolean(f.included),
+          sortOrder: idx + 1,
+        }));
+
+      if (idParam) {
+        await updatePackage(idParam, {
+          categoryId: catId,
+          name: packageName.trim(),
+          price: numPrice,
+          description: description.trim() || undefined,
+          status: isActive,
+          isPopular: highlightTag.includes("Popular"),
+          features: cleanFeatures,
+        });
+      } else {
+        await createPackage({
+          categoryId: catId,
+          name: packageName.trim(),
+          price: numPrice,
+          description: description.trim() || undefined,
+          status: isActive,
+          billingType:
+            category.toLowerCase().includes("seo") || category.toLowerCase().includes("social")
+              ? "MONTHLY"
+              : "ONE_TIME",
+          duration:
+            category.toLowerCase().includes("seo") || category.toLowerCase().includes("social")
+              ? "1 Month"
+              : undefined,
+          isPopular: highlightTag.includes("Popular"),
+          features: cleanFeatures,
+        });
+      }
+
       setSaveSuccess(true);
       setTimeout(() => {
         setSaveSuccess(false);
-        if (isCreateMode) {
-          router.push("/admin/packages");
-        }
-      }, 1500);
-    } catch {
-      // Mock fallback success for preview
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 2500);
+        router.push("/admin/packages");
+      }, 1000);
+    } catch (err: unknown) {
+      console.error("Failed to save package to database:", err);
+      const msg = err instanceof Error ? err.message : "Failed to save package to database.";
+      setErrorMessage(msg);
     } finally {
       setSaving(false);
     }
@@ -285,57 +380,27 @@ export default function PackageEditManagerPage() {
           {/* Quick preset selector tabs */}
           <div className="hidden md:flex items-center bg-[#091120] border border-[#162544] rounded-lg p-0.5 text-xs text-slate-400 mr-2">
             <button
-              onClick={() => {
-                const p = PRESET_PACKAGES.website;
-                setPageTitle(p.title);
-                setPackageName(p.packageName);
-                setCategory(p.category);
-                setPrice(p.price);
-                setDescription(p.description);
-                setHighlightTag(p.highlightTag);
-                setFeatures(p.features);
-              }}
-              className={`px-2.5 py-1 rounded-md transition-colors ${
-                category === "Website"
+              onClick={() => handleApplyPreset("website")}
+              className={`px-2.5 py-1 rounded-md transition-colors ${category === "Website"
                   ? "bg-blue-600 text-white font-semibold"
                   : "hover:text-white"
-              }`}
+                }`}
             >
               Website Pack
             </button>
             <button
-              onClick={() => {
-                const p = PRESET_PACKAGES["digital-marketing"];
-                setPageTitle(p.title);
-                setPackageName(p.packageName);
-                setCategory(p.category);
-                setPrice(p.price);
-                setDescription(p.description);
-                setHighlightTag(p.highlightTag);
-                setFeatures(p.features);
-              }}
-              className={`px-2.5 py-1 rounded-md transition-colors ${
-                category === "Digital Marketing"
+              onClick={() => handleApplyPreset("digital-marketing")}
+              className={`px-2.5 py-1 rounded-md transition-colors ${category === "Digital Marketing"
                   ? "bg-blue-600 text-white font-semibold"
                   : "hover:text-white"
-              }`}
+                }`}
             >
               Digital Marketing
             </button>
             <button
-              onClick={() => {
-                const p = PRESET_PACKAGES.seo;
-                setPageTitle(p.title);
-                setPackageName(p.packageName);
-                setCategory(p.category);
-                setPrice(p.price);
-                setDescription(p.description);
-                setHighlightTag(p.highlightTag);
-                setFeatures(p.features);
-              }}
-              className={`px-2.5 py-1 rounded-md transition-colors ${
-                category === "SEO" ? "bg-blue-600 text-white font-semibold" : "hover:text-white"
-              }`}
+              onClick={() => handleApplyPreset("seo")}
+              className={`px-2.5 py-1 rounded-md transition-colors ${category === "SEO" ? "bg-blue-600 text-white font-semibold" : "hover:text-white"
+                }`}
             >
               SEO & GEO
             </button>
@@ -361,16 +426,33 @@ export default function PackageEditManagerPage() {
                   ? "Creating..."
                   : "Saving..."
                 : saveSuccess
-                ? isCreateMode
-                  ? "Created!"
-                  : "Saved!"
-                : isCreateMode
-                ? "Save & Create"
-                : "Save Changes"}
+                  ? isCreateMode
+                    ? "Created!"
+                    : "Saved!"
+                  : isCreateMode
+                    ? "Save & Create"
+                    : "Save Changes"}
             </span>
           </button>
         </div>
       </div>
+
+      {/* Error Alert Banner */}
+      {errorMessage && (
+        <div className="flex items-center justify-between gap-3 p-3.5 bg-rose-950/60 border border-rose-500/50 rounded-xl text-rose-300 text-xs shadow-lg animate-fade-in">
+          <div className="flex items-center gap-2.5">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            <span className="font-medium">{errorMessage}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setErrorMessage(null)}
+            className="text-rose-400 hover:text-white p-1 rounded-lg hover:bg-rose-900/40 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* -------------------------------------------------------------------- */}
       {/* 2-Column Split: Left Edit Card + Right Features Card */}
@@ -398,16 +480,14 @@ export default function PackageEditManagerPage() {
               <button
                 type="button"
                 onClick={() => setIsActive(!isActive)}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all ${
-                  isActive
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all ${isActive
                     ? "bg-[#052e16] border-[#166534] text-[#4ade80]"
                     : "bg-[#27272a] border-[#3f3f46] text-slate-400"
-                }`}
+                  }`}
               >
                 <span
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    isActive ? "bg-[#4ade80] animate-pulse" : "bg-slate-400"
-                  }`}
+                  className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-[#4ade80] animate-pulse" : "bg-slate-400"
+                    }`}
                 />
                 <span>{isActive ? "Active" : "Inactive"}</span>
                 <ChevronDown className="w-3 h-3 ml-0.5 opacity-80" />
@@ -468,26 +548,46 @@ export default function PackageEditManagerPage() {
               </label>
               <div className="relative">
                 <select
-                  value={category}
+                  value={selectedCategoryId || category}
                   onChange={(e) => {
-                    const newCat = e.target.value;
-                    setCategory(newCat);
-                    if (newCat === "Website") {
-                      setPageTitle("Website Developing Package Manager");
-                    } else if (newCat === "Digital Marketing") {
-                      setPageTitle("Digital Marketing Package Manager");
-                    } else if (newCat === "SEO") {
-                      setPageTitle("SEO & GEO Package Manager");
+                    const newCatVal = e.target.value;
+                    const foundCat = categoriesList.find(
+                      (c) => c.id === newCatVal || c.name.toLowerCase() === newCatVal.toLowerCase()
+                    );
+                    if (foundCat) {
+                      setSelectedCategoryId(foundCat.id);
+                      setCategory(foundCat.name);
+                      if (foundCat.name === "Website") {
+                        setPageTitle("Website Developing Package Manager");
+                      } else if (foundCat.name === "Digital Marketing") {
+                        setPageTitle("Digital Marketing Package Manager");
+                      } else if (foundCat.name === "SEO") {
+                        setPageTitle("SEO & GEO Package Manager");
+                      } else {
+                        setPageTitle(`${foundCat.name} Package Manager`);
+                      }
+                    } else {
+                      setCategory(newCatVal);
                     }
                   }}
                   className="appearance-none w-full bg-[#070d18] border border-[#162544] hover:border-[#22375e] text-xs text-white rounded-lg pl-3 pr-8 py-2.5 focus:outline-none focus:border-blue-500 cursor-pointer"
                 >
-                  <option value="Website">Website</option>
-                  <option value="Digital Marketing">Digital Marketing</option>
-                  <option value="SEO">SEO</option>
-                  <option value="E-commerce & Mini Website">E-commerce & Mini Website</option>
-                  <option value="Social Media">Social Media</option>
-                  <option value="Video Production">Video Production</option>
+                  {categoriesList.length > 0 ? (
+                    categoriesList.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="Website">Website</option>
+                      <option value="Digital Marketing">Digital Marketing</option>
+                      <option value="SEO">SEO</option>
+                      <option value="E-commerce & Mini Website">E-commerce & Mini Website</option>
+                      <option value="Social Media">Social Media</option>
+                      <option value="Video Production">Video Production</option>
+                    </>
+                  )}
                 </select>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
@@ -692,11 +792,10 @@ export default function PackageEditManagerPage() {
                                 <button
                                   type="button"
                                   onClick={() => handleToggleFeatureStatus(index)}
-                                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-all ${
-                                    feat.included
+                                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-all ${feat.included
                                       ? "bg-[#042f2e] text-[#2dd4bf] border border-[#0f766e] hover:bg-[#064e3b]"
                                       : "bg-[#450a0a] text-[#f87171] border border-[#991b1b] hover:bg-[#7f1d1d]"
-                                  }`}
+                                    }`}
                                   title="Click to toggle"
                                 >
                                   {feat.included ? (
@@ -781,8 +880,8 @@ export default function PackageEditManagerPage() {
                   ? "Creating..."
                   : "Updating..."
                 : isCreateMode
-                ? "Create Package"
-                : "Update Package"}
+                  ? "Create Package"
+                  : "Update Package"}
             </button>
           </div>
         </div>

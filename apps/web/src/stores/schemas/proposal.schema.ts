@@ -44,7 +44,8 @@ export const companyDetailsSchema = z.object({
   expectedDeliveryDate: z
     .string()
     .trim()
-    .min(1, "Expected delivery date is required"),
+    .optional()
+    .or(z.literal("")),
   additionalNotes: z
     .string()
     .trim()
