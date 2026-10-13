@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { Role, UserStatus } from "@prisma/client";
 import { ApiResponse } from "@/common/utils/ApiResponse";
+import { BadRequestError } from "@/common/errors/AppError";
 import * as service from "@/modules/users/users.service";
 import { RoleName } from "@/common/constants/roles";
 
@@ -56,6 +57,26 @@ export async function remove(req: Request, res: Response) {
 export async function suspend(req: Request, res: Response) {
   const user = await service.suspendUser(req.params.id, req.user!.sub);
   return ApiResponse.success(res, user, "User suspended");
+}
+
+export async function uploadAvatar(req: Request, res: Response) {
+  const file = req.file;
+  const imageBody = req.body?.image || req.body?.avatar || req.body?.file;
+
+  if (!file && !imageBody) {
+    throw new BadRequestError("No image file or image data provided");
+  }
+
+  const { uploadAvatarToCloudinary } = await import("@/common/utils/cloudinary");
+  const uploadSource = file ? file.buffer : imageBody;
+  const filename =
+    req.body?.name ||
+    file?.originalname?.replace(/\.[^/.]+$/, "") ||
+    "user_avatar";
+
+  const result = await uploadAvatarToCloudinary(uploadSource, filename);
+
+  return ApiResponse.success(res, result, "Avatar uploaded to Cloudinary successfully");
 }
 
 // ─── Permissions ──────────────────────────────────────────────────────────────

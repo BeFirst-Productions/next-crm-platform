@@ -2,13 +2,13 @@
 
 import * as React from "react";
 import { ProposalDeckView, ProposalDeckData } from "@/components/proposal/ProposalDeckView";
-import { useProposalStore, ALL_ADDONS } from "@/stores";
+import { useProposalStore, ALL_ADDONS, LEGACY_MOCK_ADDON_IDS } from "@/stores";
 import { fetchPackages, fetchAddons, fetchCategories, PackageItem, AddonItem, ServiceCategory } from "@/lib/catalog-api";
 import { Loader2 } from "lucide-react";
 
 
 export default function ClientPortalProposalPage() {
-  const { companyDetails, packageSelection, selectedAddonIds } = useProposalStore();
+  const { companyDetails, packageSelection, selectedAddonIds, savedProposalNumber } = useProposalStore();
 
   const [dbPackages, setDbPackages] = React.useState<PackageItem[]>([]);
   const [dbAddons, setDbAddons] = React.useState<AddonItem[]>([]);
@@ -104,6 +104,7 @@ export default function ClientPortalProposalPage() {
   // Selected add-ons
   const selectedAddonsList = React.useMemo(() => {
     return selectedAddonIds
+      .filter((id) => !LEGACY_MOCK_ADDON_IDS.has(id))
       .map((id) => {
         const dbMatch = dbAddons.find((a) => a.id === id);
         if (dbMatch) {
@@ -146,7 +147,7 @@ export default function ClientPortalProposalPage() {
     subTotal,
     vatAmount,
     grandTotal,
-    proposalNumber: "PROP-2026-0001",
+    proposalNumber: savedProposalNumber || "PROP-2026-0001",
     proposalDate: new Date().toLocaleDateString("en-GB", {
       day: "2-digit",
       month: "short",

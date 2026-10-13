@@ -86,7 +86,10 @@ export async function apiClient<T>(
     credentials: "include", // Required for refresh token cookie
   };
 
-  if (body !== undefined) {
+  if (typeof FormData !== "undefined" && body instanceof FormData) {
+    delete headers["Content-Type"];
+    fetchOptions.body = body;
+  } else if (body !== undefined) {
     fetchOptions.body = typeof body === "string" ? body : JSON.stringify(body);
   }
 

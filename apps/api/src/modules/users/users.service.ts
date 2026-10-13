@@ -146,6 +146,8 @@ export async function createUser(
     email: string;
     password: string;
     role: Role;
+    avatarUrl?: string;
+    avatar?: string;
     permissions?: string[];
     settings?: Record<string, unknown>;
     phone?: string;
@@ -179,6 +181,30 @@ export async function createUser(
     generateEmployeeId(),
   ]);
 
+  // Upload user avatar image to Cloudinary (folder next-crm/users) if provided
+  let resolvedAvatarUrl =
+    data.avatarUrl ||
+    data.avatar ||
+    (data.settings?.avatar as string | undefined) ||
+    undefined;
+
+  if (resolvedAvatarUrl) {
+    try {
+      if (!resolvedAvatarUrl.includes("res.cloudinary.com")) {
+        const { uploadAvatarToCloudinary } = await import("@/common/utils/cloudinary");
+        const uploadRes = await uploadAvatarToCloudinary(resolvedAvatarUrl, data.name);
+        resolvedAvatarUrl = uploadRes.url;
+      }
+    } catch (uploadErr) {
+      console.warn("[Cloudinary Avatar Upload Notice]:", uploadErr);
+    }
+  }
+
+  const userSettings = {
+    ...(data.settings ?? {}),
+    ...(resolvedAvatarUrl ? { avatar: resolvedAvatarUrl } : {}),
+  };
+
   const created = await prisma.user.create({
     data: {
       employeeId,
@@ -186,8 +212,9 @@ export async function createUser(
       email: data.email,
       passwordHash,
       role: data.role,
+      avatarUrl: resolvedAvatarUrl,
       permissions,
-      settings: (data.settings ?? {}) as Prisma.InputJsonValue,
+      settings: userSettings as Prisma.InputJsonValue,
       phone: data.phone,
       departmentId: data.departmentId,
       joiningDate: data.joiningDate ? new Date(data.joiningDate) : undefined,
@@ -218,6 +245,8 @@ export async function updateUser(
     password?: string;
     role?: Role;
     status?: UserStatus;
+    avatarUrl?: string | null;
+    avatar?: string | null;
     permissions?: string[];
     settings?: Record<string, unknown>;
     phone?: string;
@@ -237,13 +266,50 @@ export async function updateUser(
     if (!dept) throw new NotFoundError("Department");
   }
 
+  // Upload or resolve avatar to Cloudinary
+  let resolvedAvatarUrl =
+    data.avatarUrl !== undefined
+      ? data.avatarUrl
+      : data.avatar !== undefined
+      ? data.avatar
+      : (data.settings?.avatar as string | undefined);
+
+  if (resolvedAvatarUrl && typeof resolvedAvatarUrl === "string") {
+    try {
+      if (!resolvedAvatarUrl.includes("res.cloudinary.com")) {
+        const { uploadAvatarToCloudinary } = await import("@/common/utils/cloudinary");
+        const uploadRes = await uploadAvatarToCloudinary(
+          resolvedAvatarUrl,
+          data.name || before.name
+        );
+        resolvedAvatarUrl = uploadRes.url;
+      }
+    } catch (uploadErr) {
+      console.warn("[Cloudinary Avatar Update Notice]:", uploadErr);
+    }
+  }
+
+  const updatedSettings =
+    data.settings !== undefined
+      ? {
+          ...(data.settings as Record<string, unknown>),
+          ...(resolvedAvatarUrl ? { avatar: resolvedAvatarUrl } : {}),
+        }
+      : resolvedAvatarUrl
+      ? {
+          ...((before.settings as Record<string, unknown>) ?? {}),
+          avatar: resolvedAvatarUrl,
+        }
+      : undefined;
+
   const updateData: Prisma.UserUpdateInput = {
     ...(data.name !== undefined && { name: data.name }),
     ...(data.email !== undefined && { email: data.email }),
     ...(data.role !== undefined && { role: data.role }),
     ...(data.status !== undefined && { status: data.status }),
+    ...(resolvedAvatarUrl !== undefined && { avatarUrl: resolvedAvatarUrl }),
     ...(data.permissions !== undefined && { permissions: data.permissions }),
-    ...(data.settings !== undefined && { settings: data.settings as Prisma.InputJsonValue }),
+    ...(updatedSettings !== undefined && { settings: updatedSettings as Prisma.InputJsonValue }),
     ...(data.phone !== undefined && { phone: data.phone }),
     ...(data.departmentId !== undefined && { departmentId: data.departmentId }),
     ...(data.joiningDate !== undefined && { joiningDate: new Date(data.joiningDate) }),

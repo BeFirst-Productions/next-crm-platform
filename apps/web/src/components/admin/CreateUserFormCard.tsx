@@ -126,6 +126,7 @@ export function CreateUserFormCard({
   // Validation & Submission
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isUploadingImage, setIsUploadingImage] = React.useState(false);
   const [dbDepartments, setDbDepartments] = React.useState<Array<{ id: string; name: string }>>([]);
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -162,8 +163,8 @@ export function CreateUserFormCard({
     setIsCustomUpload(false);
   };
 
-  // Handle File Upload
-  const handleFileProcess = (file: File) => {
+  // Handle File Upload & Cloudinary storage
+  const handleFileProcess = async (file: File) => {
     if (!file) return;
 
     // Validate type
@@ -187,6 +188,7 @@ export function CreateUserFormCard({
       return;
     }
 
+    // 1. Instant local preview
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === "string") {
@@ -195,6 +197,36 @@ export function CreateUserFormCard({
       }
     };
     reader.readAsDataURL(file);
+
+    // 2. Upload to Cloudinary (folder: next-crm/users)
+    setIsUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+      formData.append("name", fullName.trim() || "user");
+
+      const res = await apiClient<{ url: string; publicId: string }>(
+        "/users/upload-avatar",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      if (res?.data?.url) {
+        setSelectedAvatar(res.data.url);
+        setIsCustomUpload(true);
+        toast({
+          type: "success",
+          title: "Image Uploaded",
+          description: "User photo saved to Cloudinary (folder: next-crm/users).",
+        });
+      }
+    } catch (uploadErr) {
+      console.warn("Cloudinary upload notification:", uploadErr);
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -306,6 +338,8 @@ export function CreateUserFormCard({
           departmentId: matchedDept?.id || undefined,
           salesTarget: department === "Sales" ? 40000 : 0,
           commissionPercentage: department === "Sales" ? 8 : 0,
+          avatarUrl: selectedAvatar,
+          avatar: selectedAvatar,
           settings: {
             department: department,
             status: accountStatus,
@@ -341,6 +375,8 @@ export function CreateUserFormCard({
             joiningDate: new Date().toISOString(),
             salesTarget: department === "Sales" ? 40000 : 0,
             commissionPercentage: department === "Sales" ? 8 : 0,
+            avatarUrl: selectedAvatar,
+            avatar: selectedAvatar,
             settings: {
               department: department,
               status: accountStatus,
@@ -465,7 +501,17 @@ export function CreateUserFormCard({
                   : "border-[#1a3356] bg-[#08152a]/70 hover:border-[#00c0f0]/60 hover:bg-[#0b1b36]/70"
               }`}
             >
-              {selectedAvatar && isCustomUpload ? (
+              {isUploadingImage ? (
+                <div className="flex flex-col items-center justify-center py-4">
+                  <Loader2 className="w-8 h-8 text-[#00c0f0] animate-spin mb-2" />
+                  <p className="text-xs font-semibold text-slate-200">
+                    Uploading to Cloudinary...
+                  </p>
+                  <p className="text-[11px] text-[#00c0f0] mt-0.5">
+                    Folder: next-crm/users
+                  </p>
+                </div>
+              ) : selectedAvatar && isCustomUpload ? (
                 <div className="relative group flex flex-col items-center">
                   <img
                     src={selectedAvatar}

@@ -9,7 +9,7 @@ import {
   ArrowLeft,
   ArrowRight,
 } from "lucide-react";
-import { useProposalStore, ALL_ADDONS, type AddonItemData } from "@/stores";
+import { useProposalStore, ALL_ADDONS, LEGACY_MOCK_ADDON_IDS, type AddonItemData } from "@/stores";
 import {
   fetchPackages,
   fetchAddons,
@@ -94,6 +94,14 @@ export default function ClientPortalAddonsPage() {
       isMounted = false;
     };
   }, []);
+
+  // Automatically cleanse any legacy mock add-on IDs that may linger in persisted state
+  React.useEffect(() => {
+    const lingering = selectedAddonIds.filter((id) => LEGACY_MOCK_ADDON_IDS.has(id));
+    if (lingering.length > 0) {
+      lingering.forEach((id) => removeAddon(id));
+    }
+  }, [selectedAddonIds, removeAddon]);
 
   // Active category derived directly from proposalStore packageSelection.category
   const activeCategory = React.useMemo(() => {
@@ -328,12 +336,16 @@ export default function ClientPortalAddonsPage() {
       ? "marketing"
       : "web";
 
-    return ALL_ADDONS.filter((addon) => addon.category === fallbackCategory);
+    return ALL_ADDONS.filter(
+      (addon) => addon.category === fallbackCategory && !LEGACY_MOCK_ADDON_IDS.has(addon.id)
+    );
   }, [dbAddons, activeCategory, selectedPackage, packageSelection]);
 
   // Selected Add-ons items list (only matching the current category)
   const selectedAddonsList = React.useMemo(() => {
-    return effectiveCategoryAddons.filter((addon) => selectedAddonIds.includes(addon.id));
+    return effectiveCategoryAddons.filter(
+      (addon) => selectedAddonIds.includes(addon.id) && !LEGACY_MOCK_ADDON_IDS.has(addon.id)
+    );
   }, [effectiveCategoryAddons, selectedAddonIds]);
 
   // Available catalogue items (all add-ons in this category not currently selected)
@@ -612,7 +624,12 @@ export default function ClientPortalAddonsPage() {
                           </div>
                         ))}
                       </div>
-                    ) : null}
+                    ) : (
+                      <div className="flex items-center justify-between text-slate-500 pt-0.5">
+                        <span className="italic">No add-ons selected</span>
+                        <span className="font-mono text-slate-500 font-semibold">AED 0.00</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
