@@ -15,6 +15,13 @@ import {
   updateUserSchema,
 } from "@/modules/users/users.validation";
 
+import multer from "multer";
+
+const uploadAvatarMulter = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max avatar size
+});
+
 const router = Router();
 
 // All users-module routes require a valid JWT
@@ -22,6 +29,14 @@ router.use(authenticate);
 
 // ─── Stats (Super Admin + those with users:list) ──────────────────────────────
 router.get("/stats", authorize(PERMISSIONS.USERS_LIST), controller.stats);
+
+// ─── Upload Avatar to Cloudinary (folder next-crm/users) ──────────────────────
+router.post(
+  "/upload-avatar",
+  authorize(PERMISSIONS.USERS_LIST),
+  uploadAvatarMulter.single("avatar"),
+  controller.uploadAvatar,
+);
 
 // ─── User CRUD ────────────────────────────────────────────────────────────────
 // List / Create / Read / Update / Delete are gated to Super Admin OR a user

@@ -12,6 +12,8 @@ import {
   ClientRole,
 } from "./schemas/proposal.schema";
 
+import { LEGACY_MOCK_ADDON_IDS } from "./addons.data";
+
 export const DEFAULT_COMPANY_DETAILS: CompanyDetailsFormData = {
   companyName: "",
   contactNumber: "",
@@ -41,6 +43,8 @@ export interface ProposalState {
   errors: Partial<Record<CompanyDetailsField, string>>;
   isSubmitting: boolean;
   isSaved: boolean;
+  savedProposalId: string | null;
+  savedProposalNumber: string | null;
   hasHydrated: boolean;
 }
 
@@ -64,6 +68,7 @@ export interface ProposalActions {
   setCurrentStep: (step: number) => void;
   setIsSubmitting: (isSubmitting: boolean) => void;
   setIsSaved: (isSaved: boolean) => void;
+  setSavedProposalData: (data: { id: string; proposalNumber: string } | null) => void;
   resetProposal: () => void;
   setHasHydrated: (hydrated: boolean) => void;
 }
@@ -82,6 +87,8 @@ export const useProposalStore = create<ProposalStore>()(
       errors: {},
       isSubmitting: false,
       isSaved: false,
+      savedProposalId: null,
+      savedProposalNumber: null,
       hasHydrated: false,
 
       setCompanyField: (field, value) => {
@@ -103,6 +110,8 @@ export const useProposalStore = create<ProposalStore>()(
           companyDetails: updatedDetails,
           errors: currentErrors,
           isSaved: false,
+          savedProposalId: null,
+          savedProposalNumber: null,
         });
       },
 
@@ -110,6 +119,8 @@ export const useProposalStore = create<ProposalStore>()(
         set((state) => ({
           companyDetails: { ...state.companyDetails, ...details },
           isSaved: false,
+          savedProposalId: null,
+          savedProposalNumber: null,
         }));
       },
 
@@ -152,6 +163,9 @@ export const useProposalStore = create<ProposalStore>()(
       setCategory: (category) => {
         set((state) => ({
           packageSelection: { ...state.packageSelection, category },
+          isSaved: false,
+          savedProposalId: null,
+          savedProposalNumber: null,
         }));
       },
 
@@ -162,6 +176,9 @@ export const useProposalStore = create<ProposalStore>()(
             tier,
             ecommerce: null, // Clear ecommerce so strictly only one package is selected
           },
+          isSaved: false,
+          savedProposalId: null,
+          savedProposalNumber: null,
         }));
       },
 
@@ -172,6 +189,9 @@ export const useProposalStore = create<ProposalStore>()(
             ecommerce,
             tier: null, // Clear matrix tier so strictly only one package is selected
           },
+          isSaved: false,
+          savedProposalId: null,
+          savedProposalNumber: null,
         }));
       },
 
@@ -183,6 +203,8 @@ export const useProposalStore = create<ProposalStore>()(
               ? state.selectedAddonIds.filter((item) => item !== id)
               : [...state.selectedAddonIds, id],
             isSaved: false,
+            savedProposalId: null,
+            savedProposalNumber: null,
           };
         });
       },
@@ -193,6 +215,8 @@ export const useProposalStore = create<ProposalStore>()(
           return {
             selectedAddonIds: [...state.selectedAddonIds, id],
             isSaved: false,
+            savedProposalId: null,
+            savedProposalNumber: null,
           };
         });
       },
@@ -201,10 +225,12 @@ export const useProposalStore = create<ProposalStore>()(
         set((state) => ({
           selectedAddonIds: state.selectedAddonIds.filter((item) => item !== id),
           isSaved: false,
+          savedProposalId: null,
+          savedProposalNumber: null,
         }));
       },
 
-      clearAddons: () => set({ selectedAddonIds: [], isSaved: false }),
+      clearAddons: () => set({ selectedAddonIds: [], isSaved: false, savedProposalId: null, savedProposalNumber: null }),
 
       setActiveRole: (activeRole) => set({ activeRole }),
 
@@ -218,6 +244,13 @@ export const useProposalStore = create<ProposalStore>()(
 
       setIsSaved: (isSaved) => set({ isSaved }),
 
+      setSavedProposalData: (data) =>
+        set({
+          savedProposalId: data?.id || null,
+          savedProposalNumber: data?.proposalNumber || null,
+          isSaved: !!data,
+        }),
+
       resetProposal: () =>
         set({
           companyDetails: DEFAULT_COMPANY_DETAILS,
@@ -228,32 +261,22 @@ export const useProposalStore = create<ProposalStore>()(
           errors: {},
           isSubmitting: false,
           isSaved: false,
+          savedProposalId: null,
+          savedProposalNumber: null,
         }),
 
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
     }),
     {
       name: "crm_proposal_store",
-      version: 3,
+      version: 4,
       migrate: (persistedState: any, version: number) => {
         let state = persistedState || {};
-        if (!version || version < 2) {
-          const legacyMockAddons = new Set([
-            "regular-content",
-            "social-video",
-            "photo-shoot",
-            "technical-consultation",
-            "photography",
-            "social-posts",
-            "drone-shoot",
-            "extra-videos",
-          ]);
-          const currentAddons = (persistedState as any)?.selectedAddonIds || [];
-          state = {
-            ...state,
-            selectedAddonIds: currentAddons.filter((id: string) => !legacyMockAddons.has(id)),
-          };
-        }
+        const currentAddons = (persistedState as any)?.selectedAddonIds || [];
+        state = {
+          ...state,
+          selectedAddonIds: currentAddons.filter((id: string) => !LEGACY_MOCK_ADDON_IDS.has(id)),
+        };
         if (
           version < 3 ||
           state?.companyDetails?.companyName === "Abc technologies" ||
@@ -275,9 +298,18 @@ export const useProposalStore = create<ProposalStore>()(
         activeRole: state.activeRole,
         isDarkMode: state.isDarkMode,
         currentStep: state.currentStep,
+        isSaved: state.isSaved,
+        savedProposalId: state.savedProposalId,
+        savedProposalNumber: state.savedProposalNumber,
       }),
 
       onRehydrateStorage: () => (state) => {
+        if (state?.selectedAddonIds && Array.isArray(state.selectedAddonIds)) {
+          const cleaned = state.selectedAddonIds.filter((id: string) => !LEGACY_MOCK_ADDON_IDS.has(id));
+          if (cleaned.length !== state.selectedAddonIds.length) {
+            state.selectedAddonIds = cleaned;
+          }
+        }
         state?.setHasHydrated(true);
       },
     }

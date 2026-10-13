@@ -37,7 +37,7 @@ export default function EditUserPage() {
           }
 
           const statusName = u.status === "ACTIVE" ? "Active" : u.status === "SUSPENDED" ? "Suspended" : "Inactive";
-          const avatarUrl = u.settings?.avatar || u.avatar || "";
+          const avatarUrl = u.avatarUrl || u.settings?.avatar || u.avatar || "";
 
           setUser({
             id: u.id,

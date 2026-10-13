@@ -107,8 +107,8 @@ export default function UserManagementPage() {
           const empIndex = parseInt(u.employeeId?.replace(/\D/g, "") || "1", 10) || 1;
           const defaultPreset = PRESET_AVATARS[(empIndex - 1) % PRESET_AVATARS.length].svg;
           const avatar =
-            u.settings?.avatar ||
             u.avatarUrl ||
+            u.settings?.avatar ||
             defaultPreset;
 
           return {
@@ -160,8 +160,6 @@ export default function UserManagementPage() {
   const [currentPage, setCurrentPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(10);
 
-  // Selection State
-  const [selectedUserIds, setSelectedUserIds] = React.useState<string[]>([]);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -200,27 +198,6 @@ export default function UserManagementPage() {
     return filteredUsers.slice(start, start + pageSize);
   }, [filteredUsers, currentPage, pageSize]);
 
-  // Select All on current page
-  const allCurrentSelected =
-    paginatedUsers.length > 0 &&
-    paginatedUsers.every((u) => selectedUserIds.includes(u.id));
-
-  const handleToggleSelectAll = () => {
-    if (allCurrentSelected) {
-      setSelectedUserIds((prev) =>
-        prev.filter((id) => !paginatedUsers.some((u) => u.id === id))
-      );
-    } else {
-      const pageIds = paginatedUsers.map((u) => u.id);
-      setSelectedUserIds((prev) => Array.from(new Set([...prev, ...pageIds])));
-    }
-  };
-
-  const handleToggleSelectRow = (id: string) => {
-    setSelectedUserIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-    );
-  };
 
   // Open Edit Modal
   const openEditModal = (user: ManagedUser) => {
@@ -243,7 +220,6 @@ export default function UserManagementPage() {
     }
 
     setUsers((prev) => prev.filter((u) => u.id !== user.id));
-    setSelectedUserIds((prev) => prev.filter((id) => id !== user.id));
     setDeleteConfirmUser(null);
   };
 
@@ -611,94 +587,84 @@ export default function UserManagementPage() {
 
         {/* User Directory Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
+          <table className="w-full text-left text-sm border-collapse">
             <thead>
-              <tr className="border-b border-[#14233f] bg-[#091122]/60 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                <th className="py-3 px-3.5 w-10 text-center">
-                  <input
-                    type="checkbox"
-                    checked={allCurrentSelected}
-                    onChange={handleToggleSelectAll}
-                    className="rounded bg-[#0d182e] border-[#1a2d52] text-cyan-500 focus:ring-0 cursor-pointer"
-                  />
-                </th>
-                <th className="py-3 px-3.5">
-                  <div className="flex items-center gap-1 cursor-pointer hover:text-slate-200">
+              <tr className="border-b border-[#14233f] bg-[#091122]/60 text-xs font-bold uppercase tracking-wider text-slate-400">
+                <th className="py-3.5 px-4">
+                  <div className="flex items-center gap-1.5 cursor-pointer hover:text-slate-200">
                     <span>USER</span>
-                    <ArrowUpDown className="w-3 h-3 text-slate-500" />
+                    <ArrowUpDown className="w-3.5 h-3.5 text-slate-500" />
                   </div>
                 </th>
-                <th className="py-3 px-3.5">
-                  <div className="flex items-center gap-1 cursor-pointer hover:text-slate-200">
+                <th className="py-3.5 px-4">
+                  <div className="flex items-center gap-1.5 cursor-pointer hover:text-slate-200">
                     <span>EMAIL</span>
-                    <ArrowUpDown className="w-3 h-3 text-slate-500" />
+                    <ArrowUpDown className="w-3.5 h-3.5 text-slate-500" />
                   </div>
                 </th>
-                <th className="py-3 px-3.5">
-                  <div className="flex items-center gap-1 cursor-pointer hover:text-slate-200">
+                <th className="py-3.5 px-4">
+                  <div className="flex items-center gap-1.5 cursor-pointer hover:text-slate-200">
                     <span>PHONE</span>
-                    <ArrowUpDown className="w-3 h-3 text-slate-500" />
+                    <ArrowUpDown className="w-3.5 h-3.5 text-slate-500" />
                   </div>
                 </th>
-                <th className="py-3 px-3.5">
-                  <div className="flex items-center gap-1 cursor-pointer hover:text-slate-200">
+                <th className="py-3.5 px-4">
+                  <div className="flex items-center gap-1.5 cursor-pointer hover:text-slate-200">
                     <span>ROLE</span>
-                    <ArrowUpDown className="w-3 h-3 text-slate-500" />
+                    <ArrowUpDown className="w-3.5 h-3.5 text-slate-500" />
                   </div>
                 </th>
-                <th className="py-3 px-3.5">
-                  <div className="flex items-center gap-1 cursor-pointer hover:text-slate-200">
+                <th className="py-3.5 px-4">
+                  <div className="flex items-center gap-1.5 cursor-pointer hover:text-slate-200">
                     <span>DEPARTMENT</span>
-                    <ArrowUpDown className="w-3 h-3 text-slate-500" />
+                    <ArrowUpDown className="w-3.5 h-3.5 text-slate-500" />
                   </div>
                 </th>
-                <th className="py-3 px-3.5">
-                  <div className="flex items-center gap-1 cursor-pointer hover:text-slate-200">
+                <th className="py-3.5 px-4">
+                  <div className="flex items-center gap-1.5 cursor-pointer hover:text-slate-200">
                     <span>JOINING DATE</span>
-                    <ArrowUpDown className="w-3 h-3 text-slate-500" />
+                    <ArrowUpDown className="w-3.5 h-3.5 text-slate-500" />
                   </div>
                 </th>
-                <th className="py-3 px-3.5">
-                  <div className="flex items-center gap-1 cursor-pointer hover:text-slate-200">
+                <th className="py-3.5 px-4">
+                  <div className="flex items-center gap-1.5 cursor-pointer hover:text-slate-200">
                     <span>SALES TARGET</span>
-                    <ArrowUpDown className="w-3 h-3 text-slate-500" />
+                    <ArrowUpDown className="w-3.5 h-3.5 text-slate-500" />
                   </div>
                 </th>
-                <th className="py-3 px-3.5">
-                  <div className="flex items-center gap-1 cursor-pointer hover:text-slate-200">
+                <th className="py-3.5 px-4">
+                  <div className="flex items-center gap-1.5 cursor-pointer hover:text-slate-200">
                     <span>COMMISSION %</span>
-                    <ArrowUpDown className="w-3 h-3 text-slate-500" />
+                    <ArrowUpDown className="w-3.5 h-3.5 text-slate-500" />
                   </div>
                 </th>
-                <th className="py-3 px-3.5">
-                  <div className="flex items-center gap-1 cursor-pointer hover:text-slate-200">
+                <th className="py-3.5 px-4">
+                  <div className="flex items-center gap-1.5 cursor-pointer hover:text-slate-200">
                     <span>STATUS</span>
-                    <ArrowUpDown className="w-3 h-3 text-slate-500" />
+                    <ArrowUpDown className="w-3.5 h-3.5 text-slate-500" />
                   </div>
                 </th>
-                <th className="py-3 px-3.5 text-center">ACTION</th>
+                <th className="py-3.5 px-4 text-center">ACTION</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#131f38]">
               {isLoading ? (
                 <tr>
-                  <td colSpan={11} className="py-14 text-center">
+                  <td colSpan={10} className="py-14 text-center">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <div className="w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-                      <span className="text-xs text-slate-400">Loading users from database...</span>
+                      <span className="text-sm text-slate-400">Loading users from database...</span>
                     </div>
                   </td>
                 </tr>
               ) : paginatedUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="py-12 text-center text-slate-400">
+                  <td colSpan={10} className="py-12 text-center text-sm text-slate-400">
                     No users match your criteria. Try resetting the filters.
                   </td>
                 </tr>
               ) : (
                 paginatedUsers.map((user) => {
-                  const isSelected = selectedUserIds.includes(user.id);
-
                   // Role badge styling
                   let roleBadgeStyle = "bg-cyan-950/70 border-cyan-500/40 text-cyan-300";
                   if (user.role === "Sales Executive") {
@@ -710,24 +676,12 @@ export default function UserManagementPage() {
                   return (
                     <tr
                       key={user.id}
-                      className={`hover:bg-[#0f1d38]/60 transition-colors group ${
-                        isSelected ? "bg-[#0c1f3d]/40" : ""
-                      }`}
+                      className="hover:bg-[#0f1d38]/60 transition-colors group"
                     >
-                      {/* Checkbox */}
-                      <td className="py-3 px-3.5 text-center">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => handleToggleSelectRow(user.id)}
-                          className="rounded bg-[#0d182e] border-[#1a2d52] text-cyan-500 focus:ring-0 cursor-pointer"
-                        />
-                      </td>
-
                       {/* User Info (Avatar, Name, Employee ID) */}
-                      <td className="py-3 px-3.5">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-700 shrink-0 bg-slate-800">
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full overflow-hidden border border-slate-700 shrink-0 bg-slate-800">
                             <img
                               src={user.avatar}
                               alt={user.name}
@@ -738,10 +692,10 @@ export default function UserManagementPage() {
                             />
                           </div>
                           <div>
-                            <p className="font-semibold text-white leading-tight">
+                            <p className="font-semibold text-white text-sm leading-snug">
                               {user.name}
                             </p>
-                            <p className="text-[10px] text-slate-400 font-mono mt-0.5 leading-tight">
+                            <p className="text-xs text-slate-400 font-mono mt-0.5 leading-snug">
                               {user.employeeId}
                             </p>
                           </div>
@@ -749,58 +703,58 @@ export default function UserManagementPage() {
                       </td>
 
                       {/* Email */}
-                      <td className="py-3 px-3.5 text-slate-300 font-mono text-[11px]">
+                      <td className="py-3.5 px-4 text-slate-300 font-mono text-sm">
                         {user.email}
                       </td>
 
                       {/* Phone */}
-                      <td className="py-3 px-3.5 text-slate-300 whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-slate-300 whitespace-nowrap text-sm">
                         {user.phone}
                       </td>
 
                       {/* Role Badge */}
-                      <td className="py-3 px-3.5 whitespace-nowrap">
+                      <td className="py-3.5 px-4 whitespace-nowrap">
                         <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${roleBadgeStyle}`}
+                          className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border ${roleBadgeStyle}`}
                         >
                           {user.role}
                         </span>
                       </td>
 
                       {/* Department */}
-                      <td className="py-3 px-3.5 text-slate-300 whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-slate-300 whitespace-nowrap text-sm">
                         {user.department}
                       </td>
 
                       {/* Joining Date */}
-                      <td className="py-3 px-3.5 text-slate-300 whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-slate-300 whitespace-nowrap text-sm">
                         <div className="flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                          <Calendar className="w-4 h-4 text-slate-500" />
                           <span>{user.joiningDate}</span>
                         </div>
                       </td>
 
                       {/* Sales Target */}
-                      <td className="py-3 px-3.5 text-slate-200 font-medium whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-slate-200 font-medium whitespace-nowrap text-sm">
                         {user.salesTarget > 0
                           ? `AED ${user.salesTarget.toLocaleString()}`
                           : "AED 0"}
                       </td>
 
                       {/* Commission % */}
-                      <td className="py-3 px-3.5 text-slate-300 whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-slate-300 whitespace-nowrap text-sm">
                         {user.commissionRate}%
                       </td>
 
                       {/* Status */}
-                      <td className="py-3 px-3.5 whitespace-nowrap">
+                      <td className="py-3.5 px-4 whitespace-nowrap">
                         {user.status === "Active" ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border bg-[#062c20] text-emerald-400 border-emerald-500/30">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border bg-[#062c20] text-emerald-400 border-emerald-500/30">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                             Active
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border bg-[#2d1117] text-rose-400 border-rose-500/30">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border bg-[#2d1117] text-rose-400 border-rose-500/30">
                             <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
                             Inactive
                           </span>
@@ -808,26 +762,26 @@ export default function UserManagementPage() {
                       </td>
 
                       {/* Action Buttons */}
-                      <td className="py-3 px-3.5 text-center">
+                      <td className="py-3.5 px-4 text-center">
                         <div className="flex items-center justify-center gap-1.5">
                           {/* Edit Button */}
                           <button
                             onClick={() => openEditModal(user)}
-                            className="w-7 h-7 rounded-lg border border-blue-500/40 bg-blue-950/40 hover:bg-blue-600 text-blue-400 hover:text-white transition-all flex items-center justify-center"
+                            className="w-8 h-8 rounded-lg border border-blue-500/40 bg-blue-950/40 hover:bg-blue-600 text-blue-400 hover:text-white transition-all flex items-center justify-center cursor-pointer"
                             title="Edit User"
                             aria-label={`Edit ${user.name}`}
                           >
-                            <Pencil className="w-3.5 h-3.5" />
+                            <Pencil className="w-4 h-4" />
                           </button>
 
                           {/* Delete Button */}
                           <button
                             onClick={() => setDeleteConfirmUser(user)}
-                            className="w-7 h-7 rounded-lg border border-rose-500/40 bg-rose-950/40 hover:bg-rose-600 text-rose-400 hover:text-white transition-all flex items-center justify-center"
+                            className="w-8 h-8 rounded-lg border border-rose-500/40 bg-rose-950/40 hover:bg-rose-600 text-rose-400 hover:text-white transition-all flex items-center justify-center cursor-pointer"
                             title="Delete User"
                             aria-label={`Delete ${user.name}`}
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>

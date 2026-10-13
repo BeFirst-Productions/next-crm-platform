@@ -171,3 +171,82 @@ export function getOptimizedImageUrl(publicIdOrUrl: string, width = 1600): strin
     secure: true,
   });
 }
+
+/**
+ * Uploads a user avatar (Buffer, base64 data URI, SVG string, or web image URL)
+ * directly to Cloudinary into the `${CLOUDINARY_FOLDER}/users` (default: 'next-crm/users') folder.
+ * Returns the secure optimized Cloudinary URL and publicId.
+ */
+export async function uploadAvatarToCloudinary(
+  fileOrData: Buffer | string,
+  filename?: string
+): Promise<{ url: string; publicId: string }> {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME || "dqnzbr7dk",
+    api_key: process.env.CLOUDINARY_API_KEY || "638473387466716",
+    api_secret: process.env.CLOUDINARY_API_SECRET || "SLFA-3cp03BQM8EZgR2D4687BCA",
+    secure: true,
+  });
+
+  const folder = `${process.env.CLOUDINARY_FOLDER || "next-crm"}/users`;
+  const cleanFilename = (filename || "user_avatar")
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, "_")
+    .slice(0, 40);
+  const publicId = `${cleanFilename}_${Date.now()}`;
+
+  if (typeof fileOrData === "string") {
+    // If already hosted on Cloudinary, return as is
+    if (fileOrData.includes("res.cloudinary.com")) {
+      return { url: fileOrData, publicId: "" };
+    }
+
+    let uploadPayload = fileOrData;
+    if (uploadPayload.startsWith("data:image/svg+xml") && !uploadPayload.includes(";base64,")) {
+      try {
+        const svgText = uploadPayload.replace(/^data:image\/svg\+xml(;utf8)?,/, "");
+        const decoded = decodeURIComponent(svgText);
+        uploadPayload = `data:image/svg+xml;base64,${Buffer.from(decoded, "utf-8").toString("base64")}`;
+      } catch {
+        // keep as is if decode fails
+      }
+    }
+
+    const result = await cloudinary.uploader.upload(uploadPayload, {
+      folder,
+      public_id: publicId,
+      resource_type: "image",
+      overwrite: true,
+      transformation: [
+        { width: 300, height: 300, crop: "fill", gravity: "face" },
+        { quality: "auto", fetch_format: "auto" },
+      ],
+    });
+
+    return { url: result.secure_url, publicId: result.public_id };
+  }
+
+  // If Buffer
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder,
+        public_id: publicId,
+        resource_type: "image",
+        overwrite: true,
+        transformation: [
+          { width: 300, height: 300, crop: "fill", gravity: "face" },
+          { quality: "auto", fetch_format: "auto" },
+        ],
+      },
+      (error, result) => {
+        if (error || !result) {
+          return reject(error || new Error("Cloudinary avatar upload failed"));
+        }
+        resolve({ url: result.secure_url, publicId: result.public_id });
+      }
+    );
+    uploadStream.end(fileOrData);
+  });
+}
+

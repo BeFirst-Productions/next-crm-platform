@@ -16,7 +16,7 @@ import {
   Eye,
   Download,
 } from "lucide-react";
-import { useProposalStore, ALL_ADDONS } from "@/stores";
+import { useProposalStore, ALL_ADDONS, LEGACY_MOCK_ADDON_IDS } from "@/stores";
 import { ProposalDeckView, ProposalDeckData } from "@/components/proposal/ProposalDeckView";
 import {
   fetchPackages,
@@ -412,14 +412,26 @@ export default function ClientPortalReviewPage() {
     companyDetails,
     packageSelection,
     selectedAddonIds,
+    removeAddon,
     isDarkMode,
     toggleDarkMode,
     isSubmitting,
     setIsSubmitting,
     setIsSaved,
+    savedProposalId,
+    savedProposalNumber,
+    setSavedProposalData,
   } = useProposalStore();
 
   const [isSuccessModalOpen, setIsSuccessModalOpen] = React.useState(false);
+
+  // Automatically cleanse any legacy mock add-on IDs that may linger from older tests/caches
+  React.useEffect(() => {
+    const lingering = selectedAddonIds.filter((id) => LEGACY_MOCK_ADDON_IDS.has(id));
+    if (lingering.length > 0) {
+      lingering.forEach((id) => removeAddon(id));
+    }
+  }, [selectedAddonIds, removeAddon]);
 
   // Backend packages & addons integration
   const [dbPackages, setDbPackages] = React.useState<PackageItem[]>([]);
@@ -608,22 +620,11 @@ export default function ClientPortalReviewPage() {
 
   // Selected Add-ons list dynamically resolved from DB (matching active package category)
   const selectedAddonsList = React.useMemo(() => {
-    // Legacy mock add-on IDs that should never be shown unless explicitly supported
-    const legacyMockAddonIds = new Set([
-      "regular-content",
-      "social-video",
-      "photo-shoot",
-      "technical-consultation",
-      "photography",
-      "social-posts",
-      "drone-shoot",
-      "extra-videos",
-    ]);
-
     const activeCatId = activeCategory?.id;
+    const activeCatName = (activeCategory?.name || packageSelection.category || "").toLowerCase();
 
     return selectedAddonIds
-      .filter((id) => !legacyMockAddonIds.has(id))
+      .filter((id) => !LEGACY_MOCK_ADDON_IDS.has(id))
       .map((id) => {
         const dbMatch = dbAddons.find((a) => a.id === id);
         if (dbMatch) {
@@ -638,6 +639,15 @@ export default function ClientPortalReviewPage() {
         }
         const staticMatch = ALL_ADDONS.find((a) => a.id === id);
         if (staticMatch) {
+          if (staticMatch.category) {
+            const isWeb = (activeCatName.includes("web") || activeCatName.includes("e-com")) && staticMatch.category === "web";
+            const isMarketing = (activeCatName.includes("market") || activeCatName.includes("social") || activeCatName.includes("brand")) && staticMatch.category === "marketing";
+            const isSeo = activeCatName.includes("seo") && staticMatch.category === "seo";
+            const isMedia = activeCatName.includes("video") && staticMatch.category === "media";
+            if (!isWeb && !isMarketing && !isSeo && !isMedia && staticMatch.category !== "tech") {
+              return null;
+            }
+          }
           return {
             id: staticMatch.id,
             name: staticMatch.name,
@@ -647,7 +657,7 @@ export default function ClientPortalReviewPage() {
         return null;
       })
       .filter(Boolean) as { id: string; name: string; price: number }[];
-  }, [selectedAddonIds, dbAddons, activeCategory]);
+  }, [selectedAddonIds, dbAddons, activeCategory, packageSelection.category]);
 
   // Pricing calculations
   const packagePrice = packageInfo.price;
@@ -664,6 +674,10 @@ export default function ClientPortalReviewPage() {
   const [saveError, setSaveError] = React.useState<string | null>(null);
   const [isPreviewDeckOpen, setIsPreviewDeckOpen] = React.useState(false);
 
+  // Check if proposal is already saved in database (persisted in localStorage across page refresh)
+  const isAlreadySaved = Boolean(savedProposalId) || Boolean(savedProposal?.id);
+  const currentProposalNumber = savedProposal?.proposalNumber || savedProposalNumber || "PROP-2026-0001";
+
   const proposalDeckData: ProposalDeckData = React.useMemo(() => ({
     clientName: companyDetails.contactPerson || "Client",
     companyName: companyDetails.companyName || "Client Company",
@@ -678,7 +692,7 @@ export default function ClientPortalReviewPage() {
     subTotal,
     vatAmount,
     grandTotal,
-    proposalNumber: savedProposal?.proposalNumber || "PROP-2026-0001",
+    proposalNumber: currentProposalNumber,
     proposalDate: new Date().toLocaleDateString("en-GB", {
       day: "2-digit",
       month: "short",
@@ -696,7 +710,7 @@ export default function ClientPortalReviewPage() {
     subTotal,
     vatAmount,
     grandTotal,
-    savedProposal,
+    currentProposalNumber,
     formattedDeliveryDate,
     activeCategory,
     packageSelection.category,
@@ -745,6 +759,7 @@ export default function ClientPortalReviewPage() {
 
       const result = await saveClientProposal(payload);
       setSavedProposal(result);
+      setSavedProposalData({ id: result.id, proposalNumber: result.proposalNumber });
       setIsSaved(true);
 
       if (status === "SUBMITTED") {
@@ -1064,7 +1079,12 @@ export default function ClientPortalReviewPage() {
                           </div>
                         ))}
                       </div>
-                    ) : null}
+                    ) : (
+                      <div className="flex justify-between items-center text-slate-500 pt-0.5">
+                        <span className="italic">No add-ons selected</span>
+                        <span className="font-mono text-slate-500">AED 0.00</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1162,15 +1182,32 @@ export default function ClientPortalReviewPage() {
               <button
                 type="button"
                 onClick={() => handleSaveProposal("DRAFT")}
-                disabled={isSubmitting}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-[#00a3ff]/40 hover:border-[#00a3ff] bg-sky-950/40 hover:bg-sky-900/60 text-[#00a3ff] hover:text-white font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer disabled:opacity-50"
+                disabled={isSubmitting || isAlreadySaved}
+                title={
+                  isAlreadySaved
+                    ? `Proposal already saved as Draft (${currentProposalNumber})`
+                    : "Save Proposal as Draft"
+                }
+                className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border font-bold text-xs sm:text-sm shadow-md transition-all ${
+                  isAlreadySaved
+                    ? "border-emerald-500/40 bg-emerald-950/40 text-emerald-400 cursor-not-allowed opacity-80"
+                    : "border-[#00a3ff]/40 hover:border-[#00a3ff] bg-sky-950/40 hover:bg-sky-900/60 text-[#00a3ff] hover:text-white cursor-pointer"
+                }`}
               >
                 {isSubmitting ? (
                   <Loader2 className="w-4 h-4 animate-spin text-[#00a3ff]" />
+                ) : isAlreadySaved ? (
+                  <Check className="w-4 h-4 text-emerald-400" />
                 ) : (
                   <Save className="w-4 h-4 text-[#00a3ff]" />
                 )}
-                <span>Save Proposal</span>
+                <span>
+                  {isSubmitting
+                    ? "Saving..."
+                    : isAlreadySaved
+                    ? "Saved"
+                    : "Save Proposal"}
+                </span>
               </button>
 
               {/* Send For Proposal Button (Stores in DB as SUBMITTED & Opens Modal) */}
@@ -1227,7 +1264,7 @@ export default function ClientPortalReviewPage() {
               <div className="flex justify-between">
                 <span className="text-slate-400">Proposal ID:</span>
                 <span className="font-mono text-cyan-400 font-bold">
-                  #{savedProposal?.proposalNumber || "PROP-2026-0001"}
+                  #{currentProposalNumber}
                 </span>
               </div>
               {savedProposal?.lead?.customLeadId && (
